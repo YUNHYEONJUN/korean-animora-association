@@ -51,8 +51,8 @@ function convertDate() {
         return;
     }
     
-    if (year < 2020 || year > 2030) {
-        resultDiv.innerHTML = '<p class="result-error">⚠️ 2020년~2030년 사이의 날짜만 입력 가능합니다.</p>';
+    if (year < 1900 || year > 2100) {
+        resultDiv.innerHTML = '<p class="result-error">⚠️ 1900년~2100년 사이의 날짜만 입력 가능합니다.</p>';
         animoraInfo.style.display = 'none';
         return;
     }
@@ -80,12 +80,13 @@ function convertDate() {
         }
         
         // 결과 표시
+        const leapText = lunar.isLeapMonth ? ' <span class="leap-badge">(윤달)</span>' : '';
         resultDiv.innerHTML = `
             <div class="result-success">
                 <div class="result-icon">🌙</div>
                 <div class="result-dates">
                     <p class="solar-date">양력: ${year}년 ${month}월 ${day}일</p>
-                    <p class="lunar-date">음력: ${lunar.year}년 ${lunar.month}월 ${lunar.day}일</p>
+                    <p class="lunar-date">음력: ${lunar.year}년 ${lunar.month}월 ${lunar.day}일${leapText}</p>
                 </div>
             </div>
         `;
@@ -96,6 +97,25 @@ function convertDate() {
         
         document.getElementById('animora-country').textContent = country;
         document.getElementById('animora-animal').textContent = animal;
+        
+        // 아니모라 AI 링크 버튼 추가
+        const aiButton = `
+            <a href="https://chatgpt.com/g/g-6805285f91a08191927f5e111e1f44dd-animora-naemyeonyi-dongmuli-malhaneun-insaeng" 
+               target="_blank" 
+               class="animora-ai-btn">
+               🤖 아니모라 AI로 상세 해석 받기
+            </a>
+        `;
+        
+        // 버튼이 이미 있으면 제거
+        const existingBtn = animoraInfo.querySelector('.animora-ai-btn');
+        if (existingBtn) {
+            existingBtn.remove();
+        }
+        
+        animoraInfo.innerHTML = animoraInfo.innerHTML.replace(aiButton, '');
+        animoraInfo.insertAdjacentHTML('beforeend', aiButton);
+        
         animoraInfo.style.display = 'block';
         
         // 애니메이션 효과

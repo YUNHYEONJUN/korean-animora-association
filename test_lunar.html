@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>음력 변환 테스트</title>
+</head>
+<body>
+    <h1>음력 변환 테스트</h1>
+    <div id="results"></div>
+    
+    <script src="lunar-converter.js"></script>
+    <script>
+        const testCases = [
+            { year: 2025, month: 1, day: 3 },
+            { year: 1950, month: 6, day: 15 },
+            { year: 2000, month: 12, day: 25 },
+            { year: 2100, month: 1, day: 1 }
+        ];
+        
+        let html = '<h2>테스트 결과:</h2>';
+        testCases.forEach(test => {
+            const result = solarToLunar(test.year, test.month, test.day);
+            html += `<p>양력 ${test.year}년 ${test.month}월 ${test.day}일 → ${formatLunarDate(result)}</p>`;
+        });
+        
+        document.getElementById('results').innerHTML = html;
+    </script>
+</body>
+</html>
