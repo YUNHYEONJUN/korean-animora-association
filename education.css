@@ -1,0 +1,557 @@
+/* Education Page Specific Styles */
+
+/* Hero Section */
+.edu-hero {
+    position: relative;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+    color: white;
+    overflow: hidden;
+}
+
+.edu-hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.edu-hero-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.edu-hero-title {
+    font-size: 3rem;
+    font-weight: 900;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.edu-hero-subtitle {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #ffd700;
+}
+
+.edu-hero-description {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    opacity: 0.95;
+    line-height: 1.8;
+}
+
+/* Overview Section */
+.edu-overview {
+    background: var(--bg-light);
+}
+
+.overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+    margin-bottom: 60px;
+}
+
+.overview-card {
+    background: white;
+    padding: 40px 30px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    border-top: 4px solid var(--primary-color);
+}
+
+.overview-card:hover {
+    transform: translateY(-10px);
+    box-shadow: var(--shadow-md);
+}
+
+.overview-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.overview-card h3 {
+    font-size: 1.4rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.overview-card p {
+    color: var(--text-light);
+    line-height: 1.8;
+}
+
+/* Education Features */
+.edu-features {
+    background: white;
+    padding: 50px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-md);
+}
+
+.edu-features h3 {
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: 2.5rem;
+    text-align: center;
+    font-weight: 700;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+}
+
+.feature-item {
+    position: relative;
+    padding: 30px;
+    padding-top: 50px;
+    background: var(--bg-light);
+    border-radius: 15px;
+    transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+    background: linear-gradient(135deg, rgba(44, 62, 137, 0.05), rgba(74, 95, 193, 0.05));
+}
+
+.feature-number {
+    position: absolute;
+    top: -15px;
+    left: 30px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    box-shadow: var(--shadow-sm);
+}
+
+.feature-item h4 {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.feature-item p {
+    color: var(--text-light);
+    line-height: 1.7;
+}
+
+/* Curriculum Section */
+.edu-curriculum {
+    background: white;
+}
+
+.day-schedule {
+    margin-bottom: 50px;
+    background: var(--bg-light);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+.day-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 30px 40px;
+    text-align: center;
+}
+
+.day-badge {
+    display: inline-block;
+    padding: 8px 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.day-header h3 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.day-date {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.schedule-content {
+    padding: 40px;
+}
+
+.schedule-item {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.schedule-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+.schedule-time {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--secondary-color);
+    padding: 10px 15px;
+    background: white;
+    border-radius: 10px;
+    text-align: center;
+    align-self: start;
+    box-shadow: var(--shadow-sm);
+}
+
+.schedule-detail h4 {
+    font-size: 1.3rem;
+    color: var(--primary-color);
+    margin-bottom: 0.8rem;
+    font-weight: 700;
+}
+
+.schedule-detail p {
+    color: var(--text-light);
+    margin-bottom: 1rem;
+    line-height: 1.7;
+}
+
+.schedule-detail ul {
+    list-style: none;
+    padding: 0;
+}
+
+.schedule-detail li {
+    padding: 8px 0;
+    padding-left: 25px;
+    position: relative;
+    color: var(--text-light);
+    line-height: 1.6;
+}
+
+.schedule-detail li:before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--secondary-color);
+    font-weight: 700;
+}
+
+/* Benefits Section */
+.edu-benefits {
+    background: var(--bg-light);
+}
+
+.benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.benefit-card {
+    background: white;
+    padding: 40px 30px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.benefit-card:hover {
+    transform: translateY(-10px);
+    box-shadow: var(--shadow-md);
+    background: linear-gradient(135deg, rgba(44, 62, 137, 0.02), rgba(74, 95, 193, 0.02));
+}
+
+.benefit-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.benefit-card h3 {
+    font-size: 1.4rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.benefit-card p {
+    color: var(--text-light);
+    line-height: 1.8;
+}
+
+/* Application Section */
+.edu-application {
+    background: white;
+}
+
+.application-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 50px;
+}
+
+.application-info h3 {
+    font-size: 1.6rem;
+    color: var(--primary-color);
+    margin-top: 2.5rem;
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+}
+
+.application-info h3:first-child {
+    margin-top: 0;
+}
+
+.application-info ul {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 2rem;
+}
+
+.application-info ul li {
+    padding: 12px 0;
+    padding-left: 30px;
+    position: relative;
+    color: var(--text-light);
+    line-height: 1.7;
+}
+
+.application-info ul li:before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--secondary-color);
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.application-info ol {
+    padding-left: 25px;
+    margin-bottom: 2rem;
+}
+
+.application-info ol li {
+    padding: 10px 0;
+    color: var(--text-light);
+    line-height: 1.7;
+}
+
+.schedule-table {
+    overflow-x: auto;
+    margin-bottom: 2rem;
+}
+
+.schedule-table table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: var(--shadow-sm);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.schedule-table th,
+.schedule-table td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.schedule-table th {
+    background: var(--primary-color);
+    color: white;
+    font-weight: 600;
+    text-align: center;
+}
+
+.schedule-table td {
+    text-align: center;
+}
+
+.schedule-table tr:last-child td {
+    border-bottom: none;
+}
+
+.status-open {
+    display: inline-block;
+    padding: 5px 15px;
+    background: #27ae60;
+    color: white;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-planned {
+    display: inline-block;
+    padding: 5px 15px;
+    background: #95a5a6;
+    color: white;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.application-cta {
+    position: sticky;
+    top: 100px;
+}
+
+.cta-card {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 40px 30px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+}
+
+.cta-card h3 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.cta-card > p {
+    margin-bottom: 2rem;
+    opacity: 0.95;
+    line-height: 1.7;
+}
+
+.cta-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 2rem;
+}
+
+.cta-btn {
+    display: block;
+    padding: 15px 30px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+}
+
+.cta-btn.primary {
+    background: white;
+    color: var(--primary-color);
+}
+
+.cta-btn.primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+.cta-btn.secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid white;
+}
+
+.cta-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-3px);
+}
+
+.cta-note {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    line-height: 1.6;
+}
+
+/* Responsive Design for Education Page */
+@media (max-width: 1024px) {
+    .application-content {
+        grid-template-columns: 1fr;
+    }
+
+    .application-cta {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .edu-hero-title {
+        font-size: 2rem;
+    }
+
+    .edu-hero-subtitle {
+        font-size: 1.3rem;
+    }
+
+    .schedule-item {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .schedule-time {
+        text-align: left;
+    }
+
+    .day-header {
+        padding: 25px 20px;
+    }
+
+    .schedule-content {
+        padding: 25px 20px;
+    }
+
+    .edu-features {
+        padding: 30px 20px;
+    }
+
+    .overview-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .edu-hero-title {
+        font-size: 1.6rem;
+    }
+
+    .day-header h3 {
+        font-size: 1.5rem;
+    }
+
+    .cta-card {
+        padding: 30px 20px;
+    }
+}
+
+/* Active nav link */
+.nav-menu a.active {
+    color: var(--secondary-color);
+    font-weight: 700;
+}

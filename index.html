@@ -21,7 +21,8 @@
                 <li><a href="#about">협회소개</a></li>
                 <li><a href="#animora">아니모라란?</a></li>
                 <li><a href="#president">협회장 소개</a></li>
-                <li><a href="#types">360가지 유형</a></li>
+                <li><a href="#converter">생일 변환</a></li>
+                <li><a href="education.html">교육과정</a></li>
                 <li><a href="#contact">문의</a></li>
             </ul>
             <div class="hamburger">
@@ -293,6 +294,74 @@
         </div>
     </section>
 
+    <!-- Birthday Converter Section -->
+    <section id="converter" class="section converter-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">BIRTHDAY CONVERTER</span>
+                <h2 class="section-title">양력 → 음력 변환기</h2>
+                <p class="section-subtitle">양력 생일을 입력하시면 음력 생일로 변환해드립니다</p>
+            </div>
+
+            <div class="converter-container">
+                <div class="converter-card">
+                    <div class="converter-input-section">
+                        <h3>양력 생일 입력</h3>
+                        <div class="date-input-group">
+                            <div class="input-field">
+                                <label for="solar-year">년도</label>
+                                <input type="number" id="solar-year" placeholder="2025" min="2020" max="2030">
+                            </div>
+                            <div class="input-field">
+                                <label for="solar-month">월</label>
+                                <input type="number" id="solar-month" placeholder="1" min="1" max="12">
+                            </div>
+                            <div class="input-field">
+                                <label for="solar-day">일</label>
+                                <input type="number" id="solar-day" placeholder="15" min="1" max="31">
+                            </div>
+                        </div>
+                        <button class="convert-btn" onclick="convertDate()">변환하기</button>
+                    </div>
+
+                    <div class="converter-arrow">
+                        <span>→</span>
+                    </div>
+
+                    <div class="converter-result-section">
+                        <h3>음력 생일</h3>
+                        <div id="lunar-result" class="lunar-result">
+                            <p class="result-placeholder">변환 결과가 여기에 표시됩니다</p>
+                        </div>
+                        <div id="animora-info" class="animora-info" style="display: none;">
+                            <h4>🎯 당신의 아니모라</h4>
+                            <div class="animora-result">
+                                <div class="animora-item">
+                                    <span class="animora-label">나라 (환경)</span>
+                                    <span id="animora-country" class="animora-value">-</span>
+                                </div>
+                                <div class="animora-item">
+                                    <span class="animora-label">동물 (본성)</span>
+                                    <span id="animora-animal" class="animora-value">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="converter-notice">
+                    <h4>📌 유의사항</h4>
+                    <ul>
+                        <li>현재 2020년~2030년 사이의 날짜만 변환 가능합니다.</li>
+                        <li>음력 변환은 대략적인 값이며, 정확한 변환은 전문 음력 달력을 참고하세요.</li>
+                        <li>자신의 아니모라 유형을 알고 싶으시다면 변환된 음력 생일을 확인하세요.</li>
+                        <li>상세한 아니모라 풀이는 무료 상담을 신청해주세요.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- 360 Types Section -->
     <section id="types" class="section types-section">
         <div class="container">
@@ -528,6 +597,8 @@
         </div>
     </footer>
 
+    <script src="lunar-converter.js"></script>
     <script src="script.js"></script>
+    <script src="converter.js"></script>
 </body>
 </html>
