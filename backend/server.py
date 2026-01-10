@@ -7,7 +7,7 @@ OpenAI API 연동 및 프리미엄 기능 제공
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import openai
+from openai import OpenAI
 import os
 import json
 from datetime import datetime
@@ -26,12 +26,14 @@ CORS(app, resources={
     }
 })
 
-# OpenAI API 설정 (젠스파크 프록시)
-openai.api_key = os.getenv('OPENAI_API_KEY')
-openai.api_base = os.getenv('OPENAI_BASE_URL', 'https://www.genspark.ai/api/llm_proxy/v1')
+# OpenAI 클라이언트 설정 (젠스파크 프록시)
+client = OpenAI(
+    api_key=os.getenv('OPENAI_API_KEY'),
+    base_url=os.getenv('OPENAI_BASE_URL', 'https://www.genspark.ai/api/llm_proxy/v1')
+)
 
-# 기본 모델 설정
-DEFAULT_MODEL = "gpt-4"
+# 기본 모델 설정 (젠스파크 프록시 지원 모델)
+DEFAULT_MODEL = "gpt-5"
 
 # 아니모라 시스템 프롬프트
 ANIMORA_SYSTEM_PROMPT = """당신은 한국아니모라협회의 전문 상담사입니다.
@@ -76,7 +78,7 @@ def health():
     return jsonify({
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "openai_configured": bool(openai.api_key)
+        "openai_configured": bool(os.getenv('OPENAI_API_KEY'))
     })
 
 
@@ -95,8 +97,8 @@ def ai_analysis():
         # 프롬프트 생성
         prompt = generate_analysis_prompt(analysis_data, question_type)
         
-        # OpenAI API 호출
-        response = openai.ChatCompletion.create(
+        # OpenAI API 호출 (새 버전)
+        response = client.chat.completions.create(
             model=DEFAULT_MODEL,
             messages=[
                 {"role": "system", "content": ANIMORA_SYSTEM_PROMPT},
@@ -135,8 +137,8 @@ def custom_question():
         if not prompt:
             return jsonify({"error": "프롬프트가 필요합니다"}), 400
         
-        # OpenAI API 호출
-        response = openai.ChatCompletion.create(
+        # OpenAI API 호출 (새 버전)
+        response = client.chat.completions.create(
             model=DEFAULT_MODEL,
             messages=[
                 {"role": "system", "content": ANIMORA_SYSTEM_PROMPT},
@@ -309,13 +311,14 @@ if __name__ == '__main__':
     port = int(os.getenv('FLASK_PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     
+    api_key_status = '✅ 완료' if os.getenv('OPENAI_API_KEY') else '❌ 미설정'
     print(f"""
 ╔═══════════════════════════════════════════╗
 ║   🌟 아니모라 백엔드 API 서버 시작 🌟   ║
 ╠═══════════════════════════════════════════╣
 ║  포트: {port}                              ║
 ║  디버그: {debug}                           ║
-║  OpenAI 설정: {'✅ 완료' if openai.api_key else '❌ 미설정'}              ║
+║  OpenAI 설정: {api_key_status}              ║
 ╚═══════════════════════════════════════════╝
     """)
     
