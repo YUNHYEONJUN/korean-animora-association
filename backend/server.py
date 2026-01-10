@@ -14,17 +14,11 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# CORS 설정 - 프론트엔드에서 접근 가능하도록
-CORS(app, resources={
-    r"/api/*": {
-        "origins": [
-            "http://localhost:8000",
-            "http://localhost:8001",
-            "https://*.sandbox.novita.ai",
-            "https://yunhyeonjun.github.io"
-        ]
-    }
-})
+# CORS 설정 - 모든 출처 허용 (개발/테스트용)
+CORS(app, 
+     resources={r"/api/*": {"origins": "*"}},
+     allow_headers=["Content-Type"],
+     methods=["GET", "POST", "OPTIONS"])
 
 # OpenAI 클라이언트 설정 (젠스파크 프록시)
 client = OpenAI(
