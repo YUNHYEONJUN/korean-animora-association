@@ -995,15 +995,46 @@ async function askCustomQuestion(templateId) {
     try {
         const template = ANIMORA_CONFIG.customQuestionTemplates.find(t => t.id === templateId);
         
-        // 변수 대체
-        const variables = {
-            person: window.currentAnalysisData.name || '고객',
-            person1: window.currentAnalysisData.person1?.name || window.currentAnalysisData.name,
-            person2: window.currentAnalysisData.person2?.name || '',
-            country: window.currentAnalysisData.country || '',
-            animal: window.currentAnalysisData.animal || '',
-            child: window.currentAnalysisData.name || '자녀'
-        };
+        // 변수 대체 (분석 타입에 따라 다르게 처리)
+        const variables = {};
+        
+        if (window.currentAnalysisData.type === 'personal') {
+            variables.person = window.currentAnalysisData.name || '고객';
+            variables.gender = window.currentAnalysisData.gender || 'male';
+            variables.month = window.currentAnalysisData.month || '';
+            variables.day = window.currentAnalysisData.day || '';
+            variables.country = window.currentAnalysisData.country || '';
+            variables.animal = window.currentAnalysisData.animal || '';
+            variables.child = window.currentAnalysisData.name || '자녀';
+        } else if (window.currentAnalysisData.type === 'couple') {
+            const p1 = window.currentAnalysisData.person1 || {};
+            const p2 = window.currentAnalysisData.person2 || {};
+            
+            variables.person1 = p1.name || '첫 번째 사람';
+            variables.gender1 = p1.gender || 'male';
+            variables.month1 = p1.month || '';
+            variables.day1 = p1.day || '';
+            variables.country1 = p1.country || '';
+            variables.animal1 = p1.animal || '';
+            
+            variables.person2 = p2.name || '두 번째 사람';
+            variables.gender2 = p2.gender || 'female';
+            variables.month2 = p2.month || '';
+            variables.day2 = p2.day || '';
+            variables.country2 = p2.country || '';
+            variables.animal2 = p2.animal || '';
+        } else if (window.currentAnalysisData.type === 'family') {
+            // 가족/다중 관계의 경우 첫 번째 멤버 정보 사용
+            const members = window.currentAnalysisData.members || [];
+            if (members.length > 0) {
+                variables.person = members[0].name || '구성원';
+                variables.gender = members[0].gender || 'male';
+                variables.month = members[0].month || '';
+                variables.day = members[0].day || '';
+                variables.country = members[0].country || '';
+                variables.animal = members[0].animal || '';
+            }
+        }
         
         const answer = await animoraAPI.askCustomQuestion({
             questionType: templateId,
