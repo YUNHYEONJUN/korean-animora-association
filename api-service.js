@@ -72,19 +72,30 @@ class AnimoraAPIService {
      * @returns {Promise<String>} AI 생성 응답
      */
     async askCustomQuestion(data) {
-        const template = this.config.customQuestionTemplates.find(
-            t => t.id === data.questionType
-        );
+        let prompt;
+        let templateId = data.questionType;
         
-        if (!template) {
-            throw new Error('지원하지 않는 질문 유형입니다.');
+        // 자유 질문인 경우
+        if (data.questionType === 'free_form') {
+            const context = data.variables.context || '';
+            const question = data.variables.question || '';
+            prompt = `${context}\n\n질문: ${question}\n\n위의 아니모라 성격 분석 정보를 바탕으로 질문에 대해 전문적이고 구체적인 답변을 한국어로 제공해주세요.`;
+        } else {
+            // 템플릿 질문인 경우
+            const template = this.config.customQuestionTemplates.find(
+                t => t.id === data.questionType
+            );
+            
+            if (!template) {
+                throw new Error('지원하지 않는 질문 유형입니다.');
+            }
+            
+            // 프롬프트 생성
+            prompt = template.prompt;
+            Object.keys(data.variables).forEach(key => {
+                prompt = prompt.replace(`{{${key}}}`, data.variables[key]);
+            });
         }
-        
-        // 프롬프트 생성
-        let prompt = template.prompt;
-        Object.keys(data.variables).forEach(key => {
-            prompt = prompt.replace(`{{${key}}}`, data.variables[key]);
-        });
         
         if (!this.config.api.openai.enabled) {
             return this._getMockCustomResponse(template.id, data);
@@ -102,7 +113,7 @@ class AnimoraAPIService {
                 },
                 body: JSON.stringify({
                     prompt,
-                    templateId: template.id,
+                    templateId: templateId,
                     data,
                     timestamp: new Date().toISOString()
                 }),
@@ -128,7 +139,11 @@ class AnimoraAPIService {
             
         } catch (error) {
             console.error('맞춤 질문 처리 오류:', error);
-            return this._getMockCustomResponse(template.id, data);
+            // 자유 질문의 경우 mock 응답 없음
+            if (data.questionType === 'free_form') {
+                throw error;
+            }
+            return this._getMockCustomResponse(templateId, data);
         }
     }
     

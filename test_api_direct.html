@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API 테스트</h1>
+    <button id="testBtn">AI 분석 테스트</button>
+    <div id="result"></div>
+
+    <script>
+        const ANIMORA_CONFIG = {
+            api: {
+                openai: {
+                    enabled: true
+                },
+                backend: {
+                    enabled: true,
+                    baseUrl: 'https://5000-ixqb0zibgw9tuywj5fxfb-2e1b9533.sandbox.novita.ai/api',
+                    endpoints: {
+                        analysis: '/ai-analysis'
+                    }
+                }
+            }
+        };
+
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            console.log('버튼 클릭!');
+            
+            const testData = {
+                type: 'personal',
+                name: '테스트',
+                month: 1,
+                day: 8,
+                country: '호랑이 나라',
+                animal: '호랑이'
+            };
+
+            try {
+                const apiUrl = ANIMORA_CONFIG.api.backend.baseUrl + ANIMORA_CONFIG.api.backend.endpoints.analysis;
+                console.log('API 호출:', apiUrl);
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        analysisData: testData,
+                        questionType: 'detailed'
+                    }),
+                    mode: 'cors'
+                });
+
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (data.success && data.analysis) {
+                    document.getElementById('result').innerHTML = '<pre>' + data.analysis + '</pre>';
+                } else {
+                    document.getElementById('result').innerHTML = '<p style="color: red;">에러: ' + JSON.stringify(data) + '</p>';
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = '<p style="color: red;">에러: ' + error.message + '</p>';
+            }
+        });
+    </script>
+</body>
+</html>

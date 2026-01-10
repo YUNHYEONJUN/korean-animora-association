@@ -270,9 +270,20 @@ function addFamilyMember() {
         <button type="button" class="remove-member-btn" onclick="removeFamilyMember(${memberCount})">×</button>
         <h4>가족 구성원 ${memberCount}</h4>
         
-        <div class="form-group">
-            <label for="family-name-${memberCount}">호칭/닉네임 (예: 엄마, 첫째 딸)</label>
-            <input type="text" id="family-name-${memberCount}" placeholder="예: 엄마, 씩씩한딸" required>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="family-name-${memberCount}">호칭/닉네임 (예: 엄마, 첫째 딸)</label>
+                <input type="text" id="family-name-${memberCount}" placeholder="예: 엄마, 씩씩한딸" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="family-gender-${memberCount}">성별</label>
+                <select id="family-gender-${memberCount}" required>
+                    <option value="">선택</option>
+                    <option value="male">남성</option>
+                    <option value="female">여성</option>
+                </select>
+            </div>
         </div>
         
         <div class="form-row">
@@ -314,6 +325,7 @@ function handlePersonalSubmit(e) {
     e.preventDefault();
     
     const name = document.getElementById('personal-name').value;
+    const gender = document.getElementById('personal-gender').value;
     const month = parseInt(document.getElementById('personal-month').value);
     const day = parseInt(document.getElementById('personal-day').value);
     
@@ -323,6 +335,7 @@ function handlePersonalSubmit(e) {
     const analysisData = {
         type: 'personal',
         name: name,
+        gender: gender,
         month: month,
         day: day,
         country: country.name,
@@ -339,12 +352,14 @@ function handleCoupleSubmit(e) {
     
     const person1 = {
         name: document.getElementById('couple-name1').value,
+        gender: document.getElementById('couple-gender1').value,
         month: parseInt(document.getElementById('couple-month1').value),
         day: parseInt(document.getElementById('couple-day1').value)
     };
     
     const person2 = {
         name: document.getElementById('couple-name2').value,
+        gender: document.getElementById('couple-gender2').value,
         month: parseInt(document.getElementById('couple-month2').value),
         day: parseInt(document.getElementById('couple-day2').value)
     };
@@ -385,6 +400,7 @@ function handleFamilySubmit(e) {
     memberCards.forEach(card => {
         const memberId = card.dataset.member;
         const name = document.getElementById(`family-name-${memberId}`).value;
+        const gender = document.getElementById(`family-gender-${memberId}`).value;
         const month = parseInt(document.getElementById(`family-month-${memberId}`).value);
         const day = parseInt(document.getElementById(`family-day-${memberId}`).value);
         
@@ -392,7 +408,8 @@ function handleFamilySubmit(e) {
         const animal = animals[day];
         
         members.push({ 
-            name, 
+            name,
+            gender,
             month, 
             day,
             country: country.name,
@@ -896,6 +913,14 @@ function showCustomQuestions() {
     
     modalHTML += `
                 </div>
+                
+                <div style="margin-top: 30px; padding: 20px; background: #f0f4ff; border-radius: 12px; border: 2px dashed #4a5fc1;">
+                    <h4 style="color: #2c3e89; margin-bottom: 15px; text-align: center;">💬 직접 질문하기</h4>
+                    <p style="text-align: center; color: #666; font-size: 0.9rem; margin-bottom: 15px;">위 템플릿 외에 궁금한 것을 자유롭게 물어보세요</p>
+                    <textarea id="custom-question-input" placeholder="예: 제 성격에 맞는 이상적인 직업은 무엇인가요?&#10;예: 저와 파트너가 갈등을 효과적으로 해결하려면 어떻게 해야 하나요?" style="width: 100%; padding: 15px; border: 2px solid #e0e4f0; border-radius: 8px; font-size: 1rem; resize: vertical; min-height: 100px;" rows="4"></textarea>
+                    <button onclick="askFreeFormQuestion()" style="width: 100%; margin-top: 10px; padding: 12px; background: #4a5fc1; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;" onmouseover="this.style.background='#3949a1'" onmouseout="this.style.background='#4a5fc1'">🚀 질문하기</button>
+                </div>
+                
                 <button onclick="closeCustomQuestionModal()" style="width: 100%; margin-top: 20px; padding: 12px; background: #ddd; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">닫기</button>
             </div>
         </div>
@@ -952,6 +977,96 @@ async function askCustomQuestion(templateId) {
         const loading = document.getElementById('ai-loading');
         if (loading) loading.remove();
     }
+}
+
+// 자유 질문 처리
+async function askFreeFormQuestion() {
+    const questionInput = document.getElementById('custom-question-input');
+    const question = questionInput.value.trim();
+    
+    if (!question) {
+        alert('질문을 입력해주세요.');
+        return;
+    }
+    
+    if (!window.currentAnalysisData) {
+        alert('분석 데이터가 없습니다.');
+        return;
+    }
+    
+    closeCustomQuestionModal();
+    
+    // 로딩 표시
+    const loadingHTML = `
+        <div id="ai-loading" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 9999; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 15px;">🤖</div>
+            <div style="font-weight: 600; color: #2c3e89; margin-bottom: 10px;">AI가 답변을 생성하는 중...</div>
+            <div style="color: #666;">약 20-30초 소요됩니다</div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', loadingHTML);
+    
+    try {
+        // 분석 데이터를 기반으로 컨텍스트 생성
+        let context = '';
+        if (window.currentAnalysisData.type === 'personal') {
+            context = `${window.currentAnalysisData.name}님(${window.currentAnalysisData.gender === 'male' ? '남성' : '여성'})은 ${window.currentAnalysisData.country} 출신이며 ${window.currentAnalysisData.animal} 동물을 가지고 있습니다.`;
+        } else if (window.currentAnalysisData.type === 'couple') {
+            const p1 = window.currentAnalysisData.person1;
+            const p2 = window.currentAnalysisData.person2;
+            context = `${p1.name}님(${p1.gender === 'male' ? '남성' : '여성'}, ${p1.country}, ${p1.animal})과 ${p2.name}님(${p2.gender === 'male' ? '남성' : '여성'}, ${p2.country}, ${p2.animal})의 커플입니다.`;
+        } else if (window.currentAnalysisData.type === 'family') {
+            const memberDescriptions = window.currentAnalysisData.members.map(m => 
+                `${m.name}님(${m.gender === 'male' ? '남성' : '여성'}, ${m.country}, ${m.animal})`
+            ).join(', ');
+            context = `가족 구성원: ${memberDescriptions}`;
+        }
+        
+        const fullPrompt = `${context}\n\n질문: ${question}`;
+        
+        // API 호출 (백엔드에서 처리)
+        const answer = await animoraAPI.askCustomQuestion({
+            questionType: 'free_form',
+            variables: {
+                context: context,
+                question: question
+            }
+        });
+        
+        // 결과 표시
+        displayFreeFormAnswer(question, answer);
+        
+    } catch (error) {
+        console.error('자유 질문 오류:', error);
+        alert('❌ 답변 생성 중 오류가 발생했습니다.\n' + error.message);
+    } finally {
+        // 로딩 제거
+        const loading = document.getElementById('ai-loading');
+        if (loading) loading.remove();
+    }
+}
+
+// 자유 질문 답변 표시
+function displayFreeFormAnswer(question, answer) {
+    const resultContent = document.getElementById('result-content');
+    
+    const answerHTML = `
+        <div class="result-card" style="margin-top: 40px; background: linear-gradient(135deg, #fff8e1 0%, #ffe9b3 100%); border: 3px solid #ff9800;">
+            <div class="result-header">
+                <h2 style="color: #f57c00;">💬 직접 질문 답변</h2>
+                <p class="subtitle" style="font-weight: 600; color: #2c3e89;">Q: ${question}</p>
+            </div>
+            
+            <div style="background: white; padding: 30px; border-radius: 15px; margin-top: 20px; white-space: pre-wrap; line-height: 1.8; color: #333;">
+                ${answer}
+            </div>
+        </div>
+    `;
+    
+    resultContent.insertAdjacentHTML('beforeend', answerHTML);
+    
+    // 결과 섹션으로 스크롤
+    resultContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // 맞춤 답변 표시
