@@ -169,6 +169,9 @@ function switchAnalysisType(type) {
     });
     document.getElementById(`${type}-form`).classList.add('active');
     
+    // 전환된 폼의 드롭다운 채우기
+    populateDaySelects();
+    
     // 결과 숨기기
     document.getElementById('result-section').style.display = 'none';
 }
@@ -192,12 +195,27 @@ function initForms() {
 
 // 일(day) 선택 옵션 채우기
 function populateDaySelects() {
-    const daySelects = document.querySelectorAll('select[id$="-day"]');
+    // 모든 day 드롭다운 찾기 (personal, couple1, couple2)
+    const selectIds = [
+        'personal-day',
+        'couple-day1', 
+        'couple-day2'
+    ];
     
-    console.log('populateDaySelects 호출됨, 찾은 select 개수:', daySelects.length);
-    
-    daySelects.forEach(select => {
-        console.log('드롭다운 채우는 중:', select.id);
+    selectIds.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (!select) {
+            console.warn(`${selectId} 요소를 찾을 수 없습니다`);
+            return;
+        }
+        
+        // 이미 옵션이 30개 이상이면 스킵 (이미 채워짐)
+        if (select.options.length > 30) {
+            console.log(`${selectId} 이미 채워져 있음`);
+            return;
+        }
+        
+        console.log(`${selectId} 드롭다운 채우는 중...`);
         
         // 기존 옵션 제거 (선택 옵션 제외)
         while (select.options.length > 1) {
@@ -216,7 +234,25 @@ function populateDaySelects() {
             select.appendChild(option);
         }
         
-        console.log(`${select.id} 완료: ${select.options.length - 1}개 옵션 추가됨`);
+        console.log(`${selectId} 완료: ${select.options.length - 1}개 옵션 추가됨`);
+    });
+    
+    // 가족 구성원의 day 드롭다운도 채우기
+    const familyDaySelects = document.querySelectorAll('select[id^="family-day-"]');
+    familyDaySelects.forEach(select => {
+        // 이미 옵션이 있으면 스킵 (HTML 템플릿에서 이미 생성됨)
+        if (select.options.length > 1) {
+            return;
+        }
+        
+        for (let i = 1; i <= 30; i++) {
+            if (!animals[i]) continue;
+            
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `${i}일 (${animals[i].name} ${animals[i].emoji})`;
+            select.appendChild(option);
+        }
     });
 }
 
