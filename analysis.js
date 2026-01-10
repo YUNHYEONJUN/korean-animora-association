@@ -741,12 +741,12 @@ function addPremiumButtons(container, analysisData) {
                     </div>
                 </div>
                 
-                <button class="premium-upgrade-btn" onclick="showPremiumOptions()" style="background: linear-gradient(135deg, #d4af37, #f4d03f); color: white; padding: 15px 40px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 700; cursor: pointer; box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3); transition: all 0.3s ease;">
-                    🌟 프리미엄 기능 보기
+                <button class="premium-upgrade-btn" onclick="requestAIAnalysis()" style="background: linear-gradient(135deg, #d4af37, #f4d03f); color: white; padding: 15px 40px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 700; cursor: pointer; box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3); transition: all 0.3s ease;">
+                    🤖 AI 상세 분석 받기 (무료 체험)
                 </button>
                 
-                <p style="margin-top: 15px; font-size: 0.9rem; color: #999;">
-                    ⚠️ API 연동 후 사용 가능 | 월 9,900원 또는 건당 결제
+                <p style="margin-top: 15px; font-size: 0.9rem; color: #2c3e89; font-weight: 600;">
+                    ✅ API 연동 완료! 실시간 AI 분석 가능
                 </p>
             </div>
         </div>
@@ -820,7 +820,183 @@ function closeShareModal() {
     }
 }
 
-// 프리미엄 옵션 보기
-function showPremiumOptions() {
-    alert('🌟 프리미엄 기능\n\nAPI 연동 후 다음 기능이 제공됩니다:\n\n✓ AI 맞춤형 상세 분석\n✓ 화해 방법, 선물 추천\n✓ 자녀 대화법, 진로 조언\n✓ 건강, 재테크, 학습법\n✓ 무제한 히스토리 저장\n\n가격: 월 9,900원 또는 건당 2,000~5,000원');
+// AI 상세 분석 요청
+async function requestAIAnalysis() {
+    if (!window.currentAnalysisData) {
+        alert('분석 데이터가 없습니다. 먼저 기본 분석을 진행해주세요.');
+        return;
+    }
+    
+    // 로딩 표시
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ AI 분석 중... (약 10초 소요)';
+    btn.disabled = true;
+    
+    try {
+        // API 활성화 확인
+        if (!ANIMORA_CONFIG.api.openai.enabled) {
+            throw new Error('API가 비활성화되어 있습니다');
+        }
+        
+        console.log('AI 분석 요청 시작:', window.currentAnalysisData);
+        
+        // AI 분석 생성
+        const aiAnalysis = await animoraAPI.generateAIAnalysis(
+            window.currentAnalysisData, 
+            'detailed'
+        );
+        
+        // 결과 표시
+        displayAIAnalysisResult(aiAnalysis);
+        
+    } catch (error) {
+        console.error('AI 분석 오류:', error);
+        alert('❌ AI 분석 중 오류가 발생했습니다.\n' + error.message + '\n\n기본 분석은 이미 제공되었습니다.');
+    } finally {
+        // 버튼 복구
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+// AI 분석 결과 표시
+function displayAIAnalysisResult(aiAnalysis) {
+    const resultContent = document.getElementById('result-content');
+    
+    const aiResultHTML = `
+        <div class="result-card" style="margin-top: 40px; background: linear-gradient(135deg, #fff5e6 0%, #ffe6cc 100%); border: 3px solid #d4af37;">
+            <div class="result-header">
+                <h2 style="color: #d4af37;">🤖 AI 프리미엄 상세 분석</h2>
+                <p class="subtitle">GPT-4가 생성한 맞춤형 해석</p>
+            </div>
+            
+            <div style="background: white; padding: 30px; border-radius: 15px; margin-top: 20px; white-space: pre-wrap; line-height: 1.8; color: #333;">
+                ${aiAnalysis}
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px; padding: 20px; background: rgba(212, 175, 55, 0.1); border-radius: 10px;">
+                <p style="font-weight: 600; color: #2c3e89; margin-bottom: 10px;">💡 더 궁금한 점이 있으신가요?</p>
+                <button onclick="showCustomQuestions()" style="background: #4a5fc1; color: white; padding: 12px 30px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin: 5px;">
+                    맞춤형 질문하기
+                </button>
+            </div>
+        </div>
+    `;
+    
+    resultContent.insertAdjacentHTML('beforeend', aiResultHTML);
+    
+    // 스크롤 이동
+    resultContent.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// 맞춤형 질문 선택 모달
+function showCustomQuestions() {
+    const templates = ANIMORA_CONFIG.customQuestionTemplates;
+    
+    let modalHTML = `
+        <div class="custom-question-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px;">
+            <div class="modal-content" style="background: white; padding: 40px; border-radius: 20px; max-width: 600px; max-height: 80vh; overflow-y: auto;">
+                <h3 style="color: #2c3e89; margin-bottom: 20px; text-align: center;">🎯 맞춤형 질문 선택</h3>
+                <p style="text-align: center; color: #666; margin-bottom: 30px;">원하시는 주제를 선택해주세요</p>
+                <div style="display: grid; gap: 15px;">
+    `;
+    
+    templates.forEach(template => {
+        modalHTML += `
+            <button onclick="askCustomQuestion('${template.id}')" style="text-align: left; padding: 20px; background: #f8f9fc; border: 2px solid #e0e4f0; border-radius: 12px; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.borderColor='#4a5fc1'; this.style.background='#fff'" onmouseout="this.style.borderColor='#e0e4f0'; this.style.background='#f8f9fc'">
+                <div style="font-size: 1.5rem; margin-bottom: 8px;">${template.icon}</div>
+                <div style="font-weight: 600; color: #2c3e89; margin-bottom: 5px;">${template.title}</div>
+                <div style="font-size: 0.9rem; color: #666;">${template.description}</div>
+            </button>
+        `;
+    });
+    
+    modalHTML += `
+                </div>
+                <button onclick="closeCustomQuestionModal()" style="width: 100%; margin-top: 20px; padding: 12px; background: #ddd; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">닫기</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// 맞춤형 질문 처리
+async function askCustomQuestion(templateId) {
+    closeCustomQuestionModal();
+    
+    if (!window.currentAnalysisData) {
+        alert('분석 데이터가 없습니다.');
+        return;
+    }
+    
+    // 로딩 표시
+    const loadingHTML = `
+        <div id="ai-loading" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 9999; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 15px;">🤖</div>
+            <div style="font-weight: 600; color: #2c3e89; margin-bottom: 10px;">AI가 답변을 생성하는 중...</div>
+            <div style="color: #666;">약 10초 소요됩니다</div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', loadingHTML);
+    
+    try {
+        const template = ANIMORA_CONFIG.customQuestionTemplates.find(t => t.id === templateId);
+        
+        // 변수 대체
+        const variables = {
+            person: window.currentAnalysisData.name || '고객',
+            person1: window.currentAnalysisData.person1?.name || window.currentAnalysisData.name,
+            person2: window.currentAnalysisData.person2?.name || '',
+            country: window.currentAnalysisData.country || '',
+            animal: window.currentAnalysisData.animal || '',
+            child: window.currentAnalysisData.name || '자녀'
+        };
+        
+        const answer = await animoraAPI.askCustomQuestion({
+            questionType: templateId,
+            variables: variables
+        });
+        
+        // 결과 표시
+        displayCustomAnswer(template, answer);
+        
+    } catch (error) {
+        console.error('맞춤 질문 오류:', error);
+        alert('❌ 답변 생성 중 오류가 발생했습니다.\n' + error.message);
+    } finally {
+        // 로딩 제거
+        const loading = document.getElementById('ai-loading');
+        if (loading) loading.remove();
+    }
+}
+
+// 맞춤 답변 표시
+function displayCustomAnswer(template, answer) {
+    const resultContent = document.getElementById('result-content');
+    
+    const answerHTML = `
+        <div class="result-card" style="margin-top: 40px; background: linear-gradient(135deg, #e8f4f8 0%, #d4e8f0 100%); border: 3px solid #4a5fc1;">
+            <div class="result-header">
+                <h2 style="color: #2c3e89;">${template.icon} ${template.title}</h2>
+                <p class="subtitle">${template.description}</p>
+            </div>
+            
+            <div style="background: white; padding: 30px; border-radius: 15px; margin-top: 20px; white-space: pre-wrap; line-height: 1.8; color: #333;">
+                ${answer}
+            </div>
+        </div>
+    `;
+    
+    resultContent.insertAdjacentHTML('beforeend', answerHTML);
+    
+    // 스크롤 이동
+    resultContent.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// 모달 닫기
+function closeCustomQuestionModal() {
+    const modal = document.querySelector('.custom-question-modal');
+    if (modal) modal.remove();
 }

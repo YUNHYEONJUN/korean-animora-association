@@ -22,7 +22,11 @@ class AnimoraAPIService {
         
         try {
             // 실제 API 호출은 백엔드를 통해 진행 (보안)
-            const response = await fetch('/api/ai-analysis', {
+            const apiUrl = this.config.api.backend.baseUrl + this.config.api.backend.endpoints.analysis;
+            
+            console.log('API 호출 중:', apiUrl);
+            
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -31,15 +35,24 @@ class AnimoraAPIService {
                     analysisData,
                     questionType,
                     timestamp: new Date().toISOString()
-                })
+                }),
+                mode: 'cors'
             });
             
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API 응답 오류:', errorText);
                 throw new Error('API 요청 실패');
             }
             
             const data = await response.json();
-            return data.analysis;
+            console.log('API 응답 성공:', data);
+            
+            if (data.success && data.analysis) {
+                return data.analysis;
+            } else {
+                throw new Error('분석 데이터 없음');
+            }
             
         } catch (error) {
             console.error('AI 분석 생성 오류:', error);
@@ -73,7 +86,11 @@ class AnimoraAPIService {
         }
         
         try {
-            const response = await fetch('/api/custom-question', {
+            const apiUrl = this.config.api.backend.baseUrl + this.config.api.backend.endpoints.customQuestion;
+            
+            console.log('맞춤 질문 API 호출:', apiUrl);
+            
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -83,15 +100,24 @@ class AnimoraAPIService {
                     templateId: template.id,
                     data,
                     timestamp: new Date().toISOString()
-                })
+                }),
+                mode: 'cors'
             });
             
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('맞춤 질문 API 오류:', errorText);
                 throw new Error('맞춤 질문 요청 실패');
             }
             
             const result = await response.json();
-            return result.answer;
+            console.log('맞춤 질문 응답 성공:', result);
+            
+            if (result.success && result.answer) {
+                return result.answer;
+            } else {
+                throw new Error('응답 데이터 없음');
+            }
             
         } catch (error) {
             console.error('맞춤 질문 처리 오류:', error);

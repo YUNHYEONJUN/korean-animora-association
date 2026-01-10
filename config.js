@@ -6,21 +6,21 @@
 const ANIMORA_CONFIG = {
     // API 설정
     api: {
-        // OpenAI API 설정 (향후 연동)
+        // OpenAI API 설정 (✅ 연동 완료)
         openai: {
-            enabled: false, // API 사용 여부
+            enabled: true, // API 사용 활성화
             endpoint: 'https://api.openai.com/v1/chat/completions',
-            model: 'gpt-4', // 또는 'gpt-3.5-turbo'
+            model: 'gpt-4',
             // API 키는 서버 사이드에서 관리 (보안상 클라이언트에 노출 금지)
         },
         
-        // 백엔드 API 엔드포인트 (향후 구축)
+        // 백엔드 API 엔드포인트 (✅ 연동 완료)
         backend: {
-            enabled: false,
-            baseUrl: '/api', // 또는 실제 서버 URL
+            enabled: true,
+            baseUrl: 'http://localhost:5000/api', // Flask 백엔드 서버
             endpoints: {
-                analysis: '/analysis',
-                premium: '/premium-analysis',
+                analysis: '/ai-analysis',
+                customQuestion: '/custom-question',
                 payment: '/payment',
                 history: '/history'
             }
