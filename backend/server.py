@@ -177,6 +177,7 @@ def generate_analysis_prompt(analysis_data, question_type):
 def generate_personal_prompt(data, question_type):
     """개인 분석 프롬프트"""
     name = data.get('name', '고객')
+    gender = '남성' if data.get('gender') == 'male' else '여성'
     month = data.get('month')
     day = data.get('day')
     country = data.get('country', '')
@@ -185,7 +186,7 @@ def generate_personal_prompt(data, question_type):
     prompt = f"""
 [개인 성격 분석 요청]
 
-이름: {name}
+이름: {name} ({gender})
 음력 생일: {month}월 {day}일
 나라(환경): {country}
 동물(본성): {animal}
@@ -223,15 +224,18 @@ def generate_couple_prompt(data, question_type):
     person2 = data.get('person2', {})
     score = data.get('compatibilityScore', 0)
     
+    gender1 = '남성' if person1.get('gender') == 'male' else '여성'
+    gender2 = '남성' if person2.get('gender') == 'male' else '여성'
+    
     prompt = f"""
 [커플 궁합 분석 요청]
 
-**첫 번째 사람: {person1.get('name')}**
+**첫 번째 사람: {person1.get('name')} ({gender1})**
 - 음력: {person1.get('month')}월 {person1.get('day')}일
 - 나라: {person1.get('country')}
 - 동물: {person1.get('animal')}
 
-**두 번째 사람: {person2.get('name')}**
+**두 번째 사람: {person2.get('name')} ({gender2})**
 - 음력: {person2.get('month')}월 {person2.get('day')}일
 - 나라: {person2.get('country')}
 - 동물: {person2.get('animal')}
@@ -261,41 +265,58 @@ def generate_couple_prompt(data, question_type):
 
 
 def generate_family_prompt(data, question_type):
-    """가족 관계 프롬프트"""
+    """다중 관계 프롬프트"""
     members = data.get('members', [])
     
+    # 관계 유형 확인
+    relation_labels = {
+        'family': '가족',
+        'friend': '친구',
+        'colleague': '동료',
+        'partner': '연인',
+        'business': '비즈니스 파트너',
+        'team': '팀원',
+        'other': '기타'
+    }
+    
     prompt = f"""
-[가족 관계 분석 요청]
+[다중 관계 분석 요청]
 
-가족 구성원:
+구성원 정보:
 """
     
     for i, member in enumerate(members, 1):
+        relation = relation_labels.get(member.get('relation', 'other'), member.get('relation', '기타'))
+        gender = '남성' if member.get('gender') == 'male' else '여성'
         prompt += f"""
-{i}. {member.get('name')}
+{i}. {member.get('name')} ({relation}, {gender})
    - 음력: {member.get('month')}월 {member.get('day')}일
    - 나라: {member.get('country')}
    - 동물: {member.get('animal')}
 """
     
     prompt += """
-가족 관계를 종합적으로 분석해주세요:
+이 그룹의 관계를 종합적으로 분석해주세요:
 
-1. **가족 역학**
+1. **구성원 역학**
    - 각 구성원의 역할과 특성
-   - 가족 내 상호작용 패턴
+   - 관계 유형을 고려한 상호작용 패턴
+   - 성별에 따른 특성 차이
 
 2. **조화 포인트**
-   - 가족이 잘 어울리는 부분
+   - 그룹이 잘 어울리는 부분
    - 서로를 이해하는 방법
+   - 각 관계 유형별 강점
 
 3. **갈등 포인트**
    - 마찰이 생길 수 있는 영역
    - 각 구성원이 주의할 점
+   - 관계 유형별 주의사항
 
-4. **가족 화합 조언**
-   - 더 나은 가족 관계를 위한 방법
+4. **관계 개선 조언**
+   - 더 나은 관계를 위한 방법
    - 구체적인 소통 전략
+   - 관계 유형별 맞춤 조언
 """
     
     return prompt

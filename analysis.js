@@ -268,20 +268,43 @@ function addFamilyMember() {
     
     memberCard.innerHTML = `
         <button type="button" class="remove-member-btn" onclick="removeFamilyMember(${memberCount})">×</button>
-        <h4>가족 구성원 ${memberCount}</h4>
+        <h4>사람 ${memberCount}</h4>
         
         <div class="form-row">
             <div class="form-group">
-                <label for="family-name-${memberCount}">호칭/닉네임 (예: 엄마, 첫째 딸)</label>
-                <input type="text" id="family-name-${memberCount}" placeholder="예: 엄마, 씩씩한딸" required>
+                <label for="family-name-${memberCount}">호칭/닉네임</label>
+                <input type="text" id="family-name-${memberCount}" placeholder="예: 엄마, 친구, 동료, 팀장" required>
             </div>
             
+            <div class="form-group">
+                <label for="family-relation-${memberCount}">관계</label>
+                <select id="family-relation-${memberCount}" required>
+                    <option value="">선택</option>
+                    <option value="family">가족</option>
+                    <option value="friend">친구</option>
+                    <option value="colleague">동료</option>
+                    <option value="partner">연인</option>
+                    <option value="business">비즈니스 파트너</option>
+                    <option value="team">팀원</option>
+                    <option value="other">기타</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row">
             <div class="form-group">
                 <label for="family-gender-${memberCount}">성별</label>
                 <select id="family-gender-${memberCount}" required>
                     <option value="">선택</option>
                     <option value="male">남성</option>
                     <option value="female">여성</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="visibility: hidden;">
+                <label>&nbsp;</label>
+                <select disabled>
+                    <option></option>
                 </select>
             </div>
         </div>
@@ -400,6 +423,7 @@ function handleFamilySubmit(e) {
     memberCards.forEach(card => {
         const memberId = card.dataset.member;
         const name = document.getElementById(`family-name-${memberId}`).value;
+        const relation = document.getElementById(`family-relation-${memberId}`).value;
         const gender = document.getElementById(`family-gender-${memberId}`).value;
         const month = parseInt(document.getElementById(`family-month-${memberId}`).value);
         const day = parseInt(document.getElementById(`family-day-${memberId}`).value);
@@ -409,6 +433,7 @@ function handleFamilySubmit(e) {
         
         members.push({ 
             name,
+            relation,
             gender,
             month, 
             day,
@@ -572,51 +597,70 @@ function generateCoupleAnalysis(person1, person2) {
 
 // 가족 관계 분석 생성
 function generateFamilyAnalysis(members) {
+    const relationLabels = {
+        'family': '가족',
+        'friend': '친구',
+        'colleague': '동료',
+        'partner': '연인',
+        'business': '비즈니스 파트너',
+        'team': '팀원',
+        'other': '기타'
+    };
+    
     const memberProfiles = members.map(m => {
         const country = countries[m.month];
         const animal = animals[m.day];
         return {
             ...m,
             country,
-            animal
+            animal,
+            relationLabel: relationLabels[m.relation] || m.relation
         };
     });
+    
+    // 관계 유형별 그룹핑
+    const relationTypes = [...new Set(members.map(m => m.relation))];
+    const groupTitle = relationTypes.length === 1 && relationTypes[0] === 'family' 
+        ? '가족 관계' 
+        : '다중 관계';
     
     return `
         <div class="result-card">
             <div class="result-header">
-                <h2>👨‍👩‍👧‍👦 가족 관계 분석 결과</h2>
-                <p class="subtitle">가족 구성원들의 아니모라 해석</p>
+                <h2>👥 ${groupTitle} 분석 결과</h2>
+                <p class="subtitle">${members.length}명의 구성원 아니모라 해석</p>
             </div>
             
             <div class="relationship-grid">
                 ${memberProfiles.map(m => `
                     <div class="relationship-item">
                         <h4>${m.name}</h4>
+                        <div class="animora-badge" style="margin: 10px 0; background: #e3f2fd; color: #1976d2;">${m.relationLabel}</div>
                         <div class="animora-badge" style="margin: 10px 0;">${m.country.emoji} ${m.country.name}</div>
                         <div class="animora-badge" style="margin: 10px 0;">${m.animal.emoji} ${m.animal.name}</div>
                         <p>음력 ${m.month}월 ${m.day}일생</p>
+                        <p style="font-size: 0.9rem; color: #666;">${m.gender === 'male' ? '남성' : '여성'}</p>
                     </div>
                 `).join('')}
             </div>
             
             <div class="analysis-section">
-                <h3>🏡 가족 역학 분석</h3>
+                <h3>🏡 구성원 역학 분석</h3>
                 <div class="analysis-content">
                     ${memberProfiles.map((m, i) => `
-                        <p><strong>${m.name}:</strong> ${m.country.name}에서 자라 ${m.animal.name}의 본성을 가졌습니다. 
+                        <p><strong>${m.name} (${m.relationLabel}, ${m.gender === 'male' ? '남성' : '여성'}):</strong> ${m.country.name}에서 자라 ${m.animal.name}의 본성을 가졌습니다. 
                         ${countryTraits[m.month].characteristics[0]}하며, ${m.country.keyword}를 추구합니다.</p>
                     `).join('')}
                 </div>
             </div>
             
             <div class="analysis-section">
-                <h3>💞 가족 조화 포인트</h3>
+                <h3>💞 관계 조화 포인트</h3>
                 <div class="analysis-content">
                     <ul class="analysis-list">
-                        <li>✓ 각 구성원의 서로 다른 나라와 동물 조합이 가족에 다양성을 제공합니다</li>
-                        <li>✓ ${memberProfiles[0].name}의 ${memberProfiles[0].country.keyword}와 ${memberProfiles[1]?.name || '다른 구성원'}의 ${memberProfiles[1]?.country.keyword || '특성'}이 균형을 이룹니다</li>
-                        <li>✓ 서로의 차이를 존중하고 이해할 때 가족 관계가 더욱 돈독해집니다</li>
+                        <li>✓ 각 구성원의 서로 다른 나라와 동물 조합이 그룹에 다양성을 제공합니다</li>
+                        <li>✓ ${memberProfiles[0].name} (${memberProfiles[0].relationLabel})의 ${memberProfiles[0].country.keyword}와 ${memberProfiles[1]?.name || '다른 구성원'} (${memberProfiles[1]?.relationLabel || ''})의 ${memberProfiles[1]?.country.keyword || '특성'}이 균형을 이룹니다</li>
+                        <li>✓ ${relationTypes.map(r => relationLabels[r]).join(', ')} 관계에서 서로의 차이를 존중하고 이해할 때 더욱 돈독해집니다</li>
                     </ul>
                 </div>
             </div>
@@ -626,19 +670,19 @@ function generateFamilyAnalysis(members) {
                 <div class="analysis-content">
                     <ul class="analysis-list">
                         ${memberProfiles.map(m => `
-                            <li>⚠ ${m.name}: ${countryTraits[m.month].challenges}</li>
+                            <li>⚠ ${m.name} (${m.relationLabel}): ${countryTraits[m.month].challenges}</li>
                         `).join('')}
                     </ul>
                 </div>
             </div>
             
             <div class="analysis-section">
-                <h3>💡 가족 관계 개선 조언</h3>
+                <h3>💡 관계 개선 조언</h3>
                 <div class="analysis-content">
-                    <p>가족 구성원들이 서로 다른 나라에서 자라고 다른 동물의 본성을 가지고 있다는 것을 인정하세요. 
-                    각자의 특성을 이해하고 존중할 때 가족 관계가 더욱 화목해집니다.</p>
+                    <p>구성원들이 서로 다른 나라에서 자라고 다른 동물의 본성을 가지고 있다는 것을 인정하세요. 
+                    각자의 특성과 관계 유형(${relationTypes.map(r => relationLabels[r]).join(', ')})을 이해하고 존중할 때 관계가 더욱 화목해집니다.</p>
                     
-                    <p>정기적으로 가족 대화 시간을 가지고, 각자의 입장과 감정을 표현하는 기회를 만드세요. 
+                    <p>정기적으로 대화 시간을 가지고, 각자의 입장과 감정을 표현하는 기회를 만드세요. 
                     아니모라 해석을 통해 서로를 이해하는 시간을 가져보는 것도 좋습니다.</p>
                 </div>
             </div>
