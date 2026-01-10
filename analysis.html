@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아니모라 성격 분석 & 궁합 해석 - 한국아니모라협회</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Noto+Serif+KR:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="analysis.css">
+    <script src="lunar-converter.js"></script>
+    <script src="analysis.js" defer></script>
+</head>
+<body>
+    <!-- 네비게이션 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <h1>한국아니모라협회</h1>
+                <p class="tagline">Korean Animora Association</p>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html">홈</a></li>
+                <li><a href="index.html#about">소개</a></li>
+                <li><a href="education.html">교육과정</a></li>
+                <li><a href="analysis.html" class="active">성격분석·궁합</a></li>
+                <li><a href="index.html#contact">문의</a></li>
+            </ul>
+            <button class="mobile-menu-toggle" aria-label="메뉴">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 히어로 섹션 -->
+    <section class="hero-section">
+        <div class="container">
+            <h1 class="hero-title">아니모라 성격 분석 & 궁합 해석</h1>
+            <p class="hero-subtitle">음력 생일로 본성과 환경을 파악하고, 관계의 조화를 발견하세요</p>
+        </div>
+    </section>
+
+    <!-- 메인 콘텐츠 -->
+    <main>
+        <!-- 분석 타입 선택 -->
+        <section class="analysis-type-section">
+            <div class="container">
+                <div class="type-selector">
+                    <button class="type-btn active" data-type="personal">
+                        <span class="icon">👤</span>
+                        <span class="text">개인 성격 분석</span>
+                    </button>
+                    <button class="type-btn" data-type="couple">
+                        <span class="icon">💑</span>
+                        <span class="text">커플 궁합 분석</span>
+                    </button>
+                    <button class="type-btn" data-type="family">
+                        <span class="icon">👨‍👩‍👧‍👦</span>
+                        <span class="text">가족 관계 분석</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 개인 성격 분석 폼 -->
+        <section id="personal-form" class="form-section active">
+            <div class="container">
+                <div class="form-card">
+                    <h2>개인 성격 분석</h2>
+                    <p class="form-description">음력 생일을 입력하시면 아니모라 해석을 통해 당신의 본성과 환경을 분석해드립니다.</p>
+                    
+                    <form id="personalForm">
+                        <div class="form-group">
+                            <label for="personal-name">이름</label>
+                            <input type="text" id="personal-name" placeholder="예: 홍길동" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="personal-month">음력 월</label>
+                                <select id="personal-month" required>
+                                    <option value="">선택</option>
+                                    <option value="1">1월 (호랑이 나라)</option>
+                                    <option value="2">2월 (토끼 나라)</option>
+                                    <option value="3">3월 (용 나라)</option>
+                                    <option value="4">4월 (뱀 나라)</option>
+                                    <option value="5">5월 (말 나라)</option>
+                                    <option value="6">6월 (양 나라)</option>
+                                    <option value="7">7월 (원숭이 나라)</option>
+                                    <option value="8">8월 (닭 나라)</option>
+                                    <option value="9">9월 (개 나라)</option>
+                                    <option value="10">10월 (돼지 나라)</option>
+                                    <option value="11">11월 (쥐 나라)</option>
+                                    <option value="12">12월 (소 나라)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="personal-day">음력 일</label>
+                                <select id="personal-day" required>
+                                    <option value="">선택</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">
+                            <span>성격 분석하기</span>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- 커플 궁합 분석 폼 -->
+        <section id="couple-form" class="form-section">
+            <div class="container">
+                <div class="form-card">
+                    <h2>커플 궁합 분석</h2>
+                    <p class="form-description">두 사람의 음력 생일을 입력하시면 관계의 조화와 주의점을 분석해드립니다.</p>
+                    
+                    <form id="coupleForm">
+                        <div class="person-group">
+                            <h3>👩 첫 번째 사람</h3>
+                            <div class="form-group">
+                                <label for="couple-name1">이름</label>
+                                <input type="text" id="couple-name1" placeholder="예: 아내" required>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="couple-month1">음력 월</label>
+                                    <select id="couple-month1" required>
+                                        <option value="">선택</option>
+                                        <option value="1">1월 (호랑이 나라)</option>
+                                        <option value="2">2월 (토끼 나라)</option>
+                                        <option value="3">3월 (용 나라)</option>
+                                        <option value="4">4월 (뱀 나라)</option>
+                                        <option value="5">5월 (말 나라)</option>
+                                        <option value="6">6월 (양 나라)</option>
+                                        <option value="7">7월 (원숭이 나라)</option>
+                                        <option value="8">8월 (닭 나라)</option>
+                                        <option value="9">9월 (개 나라)</option>
+                                        <option value="10">10월 (돼지 나라)</option>
+                                        <option value="11">11월 (쥐 나라)</option>
+                                        <option value="12">12월 (소 나라)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="couple-day1">음력 일</label>
+                                    <select id="couple-day1" required>
+                                        <option value="">선택</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="person-group">
+                            <h3>👨 두 번째 사람</h3>
+                            <div class="form-group">
+                                <label for="couple-name2">이름</label>
+                                <input type="text" id="couple-name2" placeholder="예: 남편" required>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="couple-month2">음력 월</label>
+                                    <select id="couple-month2" required>
+                                        <option value="">선택</option>
+                                        <option value="1">1월 (호랑이 나라)</option>
+                                        <option value="2">2월 (토끼 나라)</option>
+                                        <option value="3">3월 (용 나라)</option>
+                                        <option value="4">4월 (뱀 나라)</option>
+                                        <option value="5">5월 (말 나라)</option>
+                                        <option value="6">6월 (양 나라)</option>
+                                        <option value="7">7월 (원숭이 나라)</option>
+                                        <option value="8">8월 (닭 나라)</option>
+                                        <option value="9">9월 (개 나라)</option>
+                                        <option value="10">10월 (돼지 나라)</option>
+                                        <option value="11">11월 (쥐 나라)</option>
+                                        <option value="12">12월 (소 나라)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="couple-day2">음력 일</label>
+                                    <select id="couple-day2" required>
+                                        <option value="">선택</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">
+                            <span>궁합 분석하기</span>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- 가족 관계 분석 폼 -->
+        <section id="family-form" class="form-section">
+            <div class="container">
+                <div class="form-card">
+                    <h2>가족 관계 분석</h2>
+                    <p class="form-description">가족 구성원들의 음력 생일을 입력하시면 가족 관계의 역학을 분석해드립니다.</p>
+                    
+                    <form id="familyForm">
+                        <div id="family-members">
+                            <!-- 동적으로 가족 구성원 추가 -->
+                        </div>
+                        
+                        <button type="button" id="add-member-btn" class="add-btn">
+                            <span>+ 가족 구성원 추가</span>
+                        </button>
+                        
+                        <button type="submit" class="submit-btn" style="margin-top: 20px;">
+                            <span>가족 관계 분석하기</span>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- 결과 섹션 -->
+        <section id="result-section" class="result-section" style="display: none;">
+            <div class="container">
+                <div id="result-content"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>한국아니모라협회</h3>
+                    <p>Korean Animora Association</p>
+                    <p class="copyright">© 2025 한국아니모라협회. All rights reserved.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>바로가기</h4>
+                    <ul>
+                        <li><a href="index.html">홈</a></li>
+                        <li><a href="index.html#about">협회 소개</a></li>
+                        <li><a href="education.html">교육과정</a></li>
+                        <li><a href="analysis.html">성격분석·궁합</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>문의</h4>
+                    <ul>
+                        <li>📧 animora@example.com</li>
+                        <li>💬 카카오톡: @아니모라협회</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

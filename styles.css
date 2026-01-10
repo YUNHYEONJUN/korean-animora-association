@@ -994,18 +994,39 @@ body {
     font-weight: 700;
 }
 
-.animora-ai-btn {
-    display: block;
+.animora-buttons {
+    display: flex;
+    gap: 15px;
     margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.animora-analysis-btn,
+.animora-ai-btn {
+    flex: 1;
+    min-width: 200px;
     padding: 12px 25px;
-    background: white;
-    color: var(--primary-color);
     text-decoration: none;
     border-radius: 10px;
     font-weight: 700;
     text-align: center;
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.animora-analysis-btn {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+}
+
+.animora-analysis-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(44, 62, 137, 0.3);
+}
+
+.animora-ai-btn {
+    background: white;
+    color: var(--primary-color);
 }
 
 .animora-ai-btn:hover {
