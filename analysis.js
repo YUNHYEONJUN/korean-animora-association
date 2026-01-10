@@ -219,8 +219,8 @@ function addFamilyMember() {
         <h4>가족 구성원 ${memberCount}</h4>
         
         <div class="form-group">
-            <label for="family-name-${memberCount}">이름 (예: 엄마, 첫째 딸)</label>
-            <input type="text" id="family-name-${memberCount}" placeholder="예: 엄마" required>
+            <label for="family-name-${memberCount}">호칭/닉네임 (예: 엄마, 첫째 딸)</label>
+            <input type="text" id="family-name-${memberCount}" placeholder="예: 엄마, 씩씩한딸" required>
         </div>
         
         <div class="form-row">
