@@ -194,13 +194,29 @@ function initForms() {
 function populateDaySelects() {
     const daySelects = document.querySelectorAll('select[id$="-day"]');
     
+    console.log('populateDaySelects 호출됨, 찾은 select 개수:', daySelects.length);
+    
     daySelects.forEach(select => {
+        console.log('드롭다운 채우는 중:', select.id);
+        
+        // 기존 옵션 제거 (선택 옵션 제외)
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+        
         for (let i = 1; i <= 30; i++) {
+            if (!animals[i]) {
+                console.warn(`animals[${i}] 없음`);
+                continue;
+            }
+            
             const option = document.createElement('option');
             option.value = i;
             option.textContent = `${i}일 (${animals[i].name} ${animals[i].emoji})`;
             select.appendChild(option);
         }
+        
+        console.log(`${select.id} 완료: ${select.options.length - 1}개 옵션 추가됨`);
     });
 }
 
