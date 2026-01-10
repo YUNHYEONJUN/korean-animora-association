@@ -24,52 +24,129 @@ class PremiumFeatures {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
             
-            // 한글 폰트 설정 (나눔고딕)
-            doc.setFont('NanumGothic', 'normal');
-            
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
-            const margin = 20;
+            const margin = 15;
             const contentWidth = pageWidth - 2 * margin;
+            const lineHeight = 7;
             
             let yPosition = margin;
             
+            // 페이지 넘김 체크 함수
+            const checkPageBreak = (additionalSpace = 10) => {
+                if (yPosition > pageHeight - 30) {
+                    doc.addPage();
+                    yPosition = margin;
+                    return true;
+                }
+                return false;
+            };
+            
             // 제목
-            doc.setFontSize(20);
+            doc.setFontSize(18);
             doc.setTextColor(44, 62, 137);
-            doc.text('아니모라 성격 분석 결과', margin, yPosition);
-            yPosition += 15;
+            doc.text('아니모라 분석 결과', pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 12;
             
             // 생성 날짜
-            doc.setFontSize(10);
+            doc.setFontSize(9);
             doc.setTextColor(100, 100, 100);
-            doc.text(`생성일: ${new Date().toLocaleDateString('ko-KR')}`, margin, yPosition);
+            doc.text(`생성일: ${new Date().toLocaleDateString('ko-KR')}`, pageWidth / 2, yPosition, { align: 'center' });
             yPosition += 10;
             
             // 구분선
             doc.setDrawColor(212, 175, 55);
             doc.setLineWidth(0.5);
             doc.line(margin, yPosition, pageWidth - margin, yPosition);
-            yPosition += 10;
+            yPosition += 8;
             
-            // 분석 유형별 내용 추가
-            doc.setFontSize(12);
+            // HTML에서 텍스트 추출 (AI 분석 결과 포함)
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = resultHTML;
+            
+            // 모든 result-card 추출 (기본 분석 + AI 분석 + 맞춤형 질문)
+            const resultCards = tempDiv.querySelectorAll('.result-card');
+            
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            
+            resultCards.forEach((card, index) => {
+                // 카드 제목
+                const cardTitle = card.querySelector('h2, h3');
+                if (cardTitle) {
+                    checkPageBreak(15);
+                    doc.setFontSize(13);
+                    doc.setTextColor(44, 62, 137);
+                    const titleText = this._stripHTML(cardTitle.textContent);
+                    doc.text(titleText, margin, yPosition);
+                    yPosition += 10;
+                }
+                
+                // 카드 내용
+                const cardContent = card.querySelector('.analysis-content, .result-content, div[style*="white-space"]');
+                if (cardContent) {
+                    doc.setFontSize(10);
+                    doc.setTextColor(0, 0, 0);
+                    
+                    const contentText = this._stripHTML(cardContent.textContent);
+                    const lines = doc.splitTextToSize(contentText, contentWidth);
+                    
+                    lines.forEach(line => {
+                        checkPageBreak();
+                        doc.text(line, margin, yPosition);
+                        yPosition += lineHeight;
+                    });
+                    
+                    yPosition += 5; // 카드 간 여백
+                }
+            });
+            
+            // 기본 정보 추가 (맨 마지막에)
+            checkPageBreak(20);
+            yPosition += 10;
+            doc.setFontSize(11);
+            doc.setTextColor(44, 62, 137);
+            doc.text('기본 정보', margin, yPosition);
+            yPosition += 8;
+            
+            doc.setFontSize(9);
             doc.setTextColor(0, 0, 0);
             
             if (analysisData.type === 'personal') {
-                this._addPersonalAnalysisToPDF(doc, analysisData, margin, yPosition, contentWidth);
+                doc.text(`이름: ${analysisData.name}`, margin, yPosition);
+                yPosition += 6;
+                doc.text(`성별: ${analysisData.gender === 'male' ? '남성' : '여성'}`, margin, yPosition);
+                yPosition += 6;
+                doc.text(`음력: ${analysisData.month}월 ${analysisData.day}일`, margin, yPosition);
+                yPosition += 6;
+                doc.text(`나라: ${analysisData.country}`, margin, yPosition);
+                yPosition += 6;
+                doc.text(`동물: ${analysisData.animal}`, margin, yPosition);
             } else if (analysisData.type === 'couple') {
-                this._addCoupleAnalysisToPDF(doc, analysisData, margin, yPosition, contentWidth);
-            } else if (analysisData.type === 'family') {
-                this._addFamilyAnalysisToPDF(doc, analysisData, margin, yPosition, contentWidth);
+                const p1 = analysisData.person1 || {};
+                const p2 = analysisData.person2 || {};
+                
+                doc.text(`첫 번째: ${p1.name} (${p1.gender === 'male' ? '남성' : '여성'})`, margin, yPosition);
+                yPosition += 6;
+                doc.text(`  - 음력: ${p1.month}월 ${p1.day}일, ${p1.country}, ${p1.animal}`, margin, yPosition);
+                yPosition += 8;
+                
+                doc.text(`두 번째: ${p2.name} (${p2.gender === 'male' ? '남성' : '여성'})`, margin, yPosition);
+                yPosition += 6;
+                doc.text(`  - 음력: ${p2.month}월 ${p2.day}일, ${p2.country}, ${p2.animal}`, margin, yPosition);
             }
             
-            // 푸터
-            const footerY = pageHeight - 15;
-            doc.setFontSize(8);
-            doc.setTextColor(150, 150, 150);
-            doc.text('© 2025 한국아니모라협회. All rights reserved.', margin, footerY);
-            doc.text('https://yunhyeonjun.github.io/korean-animora-association', pageWidth - margin, footerY, { align: 'right' });
+            // 푸터 (모든 페이지에)
+            const totalPages = doc.internal.pages.length - 1;
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                const footerY = pageHeight - 10;
+                doc.setFontSize(7);
+                doc.setTextColor(150, 150, 150);
+                doc.text('© 2025 한국아니모라협회', margin, footerY);
+                doc.text(`${i} / ${totalPages}`, pageWidth / 2, footerY, { align: 'center' });
+                doc.text('https://yunhyeonjun.github.io/korean-animora-association', pageWidth - margin, footerY, { align: 'right' });
+            }
             
             // 파일명 생성
             const fileName = `아니모라_분석결과_${analysisData.name || '결과'}_${new Date().getTime()}.pdf`;
@@ -80,7 +157,7 @@ class PremiumFeatures {
             return true;
         } catch (error) {
             console.error('PDF 생성 오류:', error);
-            alert('PDF 다운로드 중 오류가 발생했습니다.');
+            alert('PDF 다운로드 중 오류가 발생했습니다.\n오류: ' + error.message);
             return false;
         }
     }
@@ -98,111 +175,7 @@ class PremiumFeatures {
         });
     }
     
-    /**
-     * 개인 분석 PDF 내용 추가
-     */
-    _addPersonalAnalysisToPDF(doc, data, margin, yStart, width) {
-        let y = yStart;
-        const lineHeight = 7;
-        
-        // 기본 정보
-        doc.setFontSize(14);
-        doc.setTextColor(44, 62, 137);
-        doc.text(`${data.name}님의 아니모라 유형`, margin, y);
-        y += 10;
-        
-        doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0);
-        doc.text(`음력: ${data.month}월 ${data.day}일`, margin, y);
-        y += lineHeight;
-        doc.text(`나라: ${data.country}`, margin, y);
-        y += lineHeight;
-        doc.text(`동물: ${data.animal}`, margin, y);
-        y += 15;
-        
-        // 간단한 텍스트 형태로 분석 내용 추가
-        doc.setFontSize(10);
-        const analysisText = this._stripHTML(data.analysisResult || '');
-        const lines = doc.splitTextToSize(analysisText, width);
-        
-        lines.forEach(line => {
-            if (y > doc.internal.pageSize.getHeight() - 30) {
-                doc.addPage();
-                y = margin;
-            }
-            doc.text(line, margin, y);
-            y += lineHeight;
-        });
-    }
-    
-    /**
-     * 커플 분석 PDF 내용 추가
-     */
-    _addCoupleAnalysisToPDF(doc, data, margin, yStart, width) {
-        let y = yStart;
-        const lineHeight = 7;
-        
-        doc.setFontSize(14);
-        doc.setTextColor(44, 62, 137);
-        doc.text('커플 궁합 분석', margin, y);
-        y += 15;
-        
-        doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0);
-        doc.text(`첫 번째: ${data.person1.name}`, margin, y);
-        y += lineHeight;
-        doc.text(`두 번째: ${data.person2.name}`, margin, y);
-        y += lineHeight;
-        doc.text(`궁합 점수: ${data.compatibilityScore || 0}점`, margin, y);
-        y += 15;
-        
-        doc.setFontSize(10);
-        const analysisText = this._stripHTML(data.analysisResult || '');
-        const lines = doc.splitTextToSize(analysisText, width);
-        
-        lines.forEach(line => {
-            if (y > doc.internal.pageSize.getHeight() - 30) {
-                doc.addPage();
-                y = margin;
-            }
-            doc.text(line, margin, y);
-            y += lineHeight;
-        });
-    }
-    
-    /**
-     * 가족 분석 PDF 내용 추가
-     */
-    _addFamilyAnalysisToPDF(doc, data, margin, yStart, width) {
-        let y = yStart;
-        const lineHeight = 7;
-        
-        doc.setFontSize(14);
-        doc.setTextColor(44, 62, 137);
-        doc.text('가족 관계 분석', margin, y);
-        y += 15;
-        
-        doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0);
-        data.members.forEach((member, index) => {
-            doc.text(`${member.name}: ${member.country} - ${member.animal}`, margin, y);
-            y += lineHeight;
-        });
-        y += 10;
-        
-        doc.setFontSize(10);
-        const analysisText = this._stripHTML(data.analysisResult || '');
-        const lines = doc.splitTextToSize(analysisText, width);
-        
-        lines.forEach(line => {
-            if (y > doc.internal.pageSize.getHeight() - 30) {
-                doc.addPage();
-                y = margin;
-            }
-            doc.text(line, margin, y);
-            y += lineHeight;
-        });
-    }
+
     
     /**
      * HTML 태그 제거
