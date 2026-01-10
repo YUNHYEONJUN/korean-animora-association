@@ -265,8 +265,20 @@ function handlePersonalSubmit(e) {
     const month = parseInt(document.getElementById('personal-month').value);
     const day = parseInt(document.getElementById('personal-day').value);
     
+    const country = countries[month];
+    const animal = animals[day];
+    
+    const analysisData = {
+        type: 'personal',
+        name: name,
+        month: month,
+        day: day,
+        country: country.name,
+        animal: animal.name
+    };
+    
     const result = generatePersonalAnalysis(name, month, day);
-    displayResult(result);
+    displayResult(result, analysisData);
 }
 
 // 커플 분석 제출
@@ -285,8 +297,30 @@ function handleCoupleSubmit(e) {
         day: parseInt(document.getElementById('couple-day2').value)
     };
     
+    const country1 = countries[person1.month];
+    const animal1 = animals[person1.day];
+    const country2 = countries[person2.month];
+    const animal2 = animals[person2.day];
+    
+    const compatibilityScore = calculateCompatibility(person1.month, person1.day, person2.month, person2.day);
+    
+    const analysisData = {
+        type: 'couple',
+        person1: {
+            ...person1,
+            country: country1.name,
+            animal: animal1.name
+        },
+        person2: {
+            ...person2,
+            country: country2.name,
+            animal: animal2.name
+        },
+        compatibilityScore: compatibilityScore
+    };
+    
     const result = generateCoupleAnalysis(person1, person2);
-    displayResult(result);
+    displayResult(result, analysisData);
 }
 
 // 가족 분석 제출
@@ -302,11 +336,25 @@ function handleFamilySubmit(e) {
         const month = parseInt(document.getElementById(`family-month-${memberId}`).value);
         const day = parseInt(document.getElementById(`family-day-${memberId}`).value);
         
-        members.push({ name, month, day });
+        const country = countries[month];
+        const animal = animals[day];
+        
+        members.push({ 
+            name, 
+            month, 
+            day,
+            country: country.name,
+            animal: animal.name
+        });
     });
     
+    const analysisData = {
+        type: 'family',
+        members: members
+    };
+    
     const result = generateFamilyAnalysis(members);
-    displayResult(result);
+    displayResult(result, analysisData);
 }
 
 // 개인 분석 생성
@@ -574,13 +622,153 @@ function calculateCompatibility(month1, day1, month2, day2) {
 }
 
 // 결과 표시
-function displayResult(htmlContent) {
+function displayResult(htmlContent, analysisData = null) {
     const resultSection = document.getElementById('result-section');
     const resultContent = document.getElementById('result-content');
     
     resultContent.innerHTML = htmlContent;
+    
+    // 프리미엄 기능 버튼 추가
+    if (analysisData) {
+        addPremiumButtons(resultContent, analysisData);
+    }
+    
     resultSection.style.display = 'block';
     
     // 결과 섹션으로 스크롤
     resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// 프리미엄 기능 버튼 추가
+function addPremiumButtons(container, analysisData) {
+    const buttonsHTML = `
+        <div class="premium-actions" style="margin-top: 40px; text-align: center;">
+            <h3 style="margin-bottom: 20px; color: #2c3e89;">📊 추가 기능</h3>
+            
+            <div class="action-buttons" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                <button class="action-btn save-btn" onclick="saveAnalysisToHistory()" style="background: linear-gradient(135deg, #4a5fc1, #2c3e89); color: white; padding: 12px 30px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                    💾 결과 저장하기
+                </button>
+                
+                <button class="action-btn pdf-btn" onclick="downloadAnalysisPDF()" style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; padding: 12px 30px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                    📄 PDF 다운로드
+                </button>
+                
+                <button class="action-btn share-btn" onclick="shareAnalysis()" style="background: linear-gradient(135deg, #3498db, #2980b9); color: white; padding: 12px 30px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                    🔗 공유하기
+                </button>
+            </div>
+            
+            <div class="premium-upgrade" style="margin-top: 30px; padding: 25px; background: linear-gradient(135deg, #f8f9fc 0%, #e8eaf6 100%); border-radius: 15px; border: 2px dashed #4a5fc1;">
+                <h4 style="color: #2c3e89; margin-bottom: 15px;">✨ 프리미엄 기능으로 더 자세한 분석</h4>
+                <p style="color: #666; margin-bottom: 20px;">AI가 당신의 상황에 맞춘 구체적인 조언을 제공합니다</p>
+                
+                <div class="premium-features-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="feature-item" style="text-align: left; padding: 15px; background: white; border-radius: 10px;">
+                        <div style="font-size: 1.5rem; margin-bottom: 5px;">🤝</div>
+                        <div style="font-weight: 600; color: #2c3e89;">화해 방법</div>
+                        <div style="font-size: 0.9rem; color: #666;">싸웠을 때 대처법</div>
+                    </div>
+                    
+                    <div class="feature-item" style="text-align: left; padding: 15px; background: white; border-radius: 10px;">
+                        <div style="font-size: 1.5rem; margin-bottom: 5px;">🎁</div>
+                        <div style="font-weight: 600; color: #2c3e89;">선물 추천</div>
+                        <div style="font-size: 0.9rem; color: #666;">유형에 맞는 선물</div>
+                    </div>
+                    
+                    <div class="feature-item" style="text-align: left; padding: 15px; background: white; border-radius: 10px;">
+                        <div style="font-size: 1.5rem; margin-bottom: 5px;">👨‍👧</div>
+                        <div style="font-weight: 600; color: #2c3e89;">자녀 대화법</div>
+                        <div style="font-size: 0.9rem; color: #666;">사춘기 소통법</div>
+                    </div>
+                    
+                    <div class="feature-item" style="text-align: left; padding: 15px; background: white; border-radius: 10px;">
+                        <div style="font-size: 1.5rem; margin-bottom: 5px;">💼</div>
+                        <div style="font-weight: 600; color: #2c3e89;">진로 조언</div>
+                        <div style="font-size: 0.9rem; color: #666;">적합한 직업 추천</div>
+                    </div>
+                </div>
+                
+                <button class="premium-upgrade-btn" onclick="showPremiumOptions()" style="background: linear-gradient(135deg, #d4af37, #f4d03f); color: white; padding: 15px 40px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 700; cursor: pointer; box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3); transition: all 0.3s ease;">
+                    🌟 프리미엄 기능 보기
+                </button>
+                
+                <p style="margin-top: 15px; font-size: 0.9rem; color: #999;">
+                    ⚠️ API 연동 후 사용 가능 | 월 9,900원 또는 건당 결제
+                </p>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', buttonsHTML);
+    
+    // 현재 분석 데이터를 전역 변수에 저장 (버튼 함수에서 사용)
+    window.currentAnalysisData = analysisData;
+}
+
+// 분석 저장
+function saveAnalysisToHistory() {
+    if (!window.currentAnalysisData) {
+        alert('저장할 분석 데이터가 없습니다.');
+        return;
+    }
+    
+    const saved = storageService.saveAnalysis(window.currentAnalysisData);
+    
+    if (saved) {
+        const stats = storageService.getStatistics();
+        alert(`✅ 분석이 저장되었습니다!\n저장된 분석: ${stats.total}개`);
+    } else {
+        alert('❌ 저장 중 오류가 발생했습니다.');
+    }
+}
+
+// PDF 다운로드
+function downloadAnalysisPDF() {
+    if (!window.currentAnalysisData) {
+        alert('다운로드할 분석 데이터가 없습니다.');
+        return;
+    }
+    
+    const resultHTML = document.getElementById('result-content').innerHTML;
+    premiumFeatures.downloadPDF(window.currentAnalysisData, resultHTML);
+}
+
+// 공유하기
+function shareAnalysis() {
+    const shareOptions = `
+        <div class="share-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">
+            <div class="share-content" style="background: white; padding: 30px; border-radius: 20px; max-width: 400px;">
+                <h3 style="margin-bottom: 20px; color: #2c3e89;">🔗 분석 결과 공유하기</h3>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button onclick="shareVia('kakao')" style="padding: 12px; background: #FEE500; color: #3C1E1E; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">카카오톡 공유</button>
+                    <button onclick="shareVia('facebook')" style="padding: 12px; background: #1877F2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">페이스북 공유</button>
+                    <button onclick="shareVia('twitter')" style="padding: 12px; background: #1DA1F2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">트위터 공유</button>
+                    <button onclick="shareVia('copy')" style="padding: 12px; background: #4a5fc1; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">링크 복사</button>
+                    <button onclick="closeShareModal()" style="padding: 12px; background: #ddd; color: #333; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px;">닫기</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', shareOptions);
+}
+
+function shareVia(platform) {
+    if (window.currentAnalysisData) {
+        premiumFeatures.share(platform, window.currentAnalysisData);
+    }
+    closeShareModal();
+}
+
+function closeShareModal() {
+    const modal = document.querySelector('.share-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// 프리미엄 옵션 보기
+function showPremiumOptions() {
+    alert('🌟 프리미엄 기능\n\nAPI 연동 후 다음 기능이 제공됩니다:\n\n✓ AI 맞춤형 상세 분석\n✓ 화해 방법, 선물 추천\n✓ 자녀 대화법, 진로 조언\n✓ 건강, 재테크, 학습법\n✓ 무제한 히스토리 저장\n\n가격: 월 9,900원 또는 건당 2,000~5,000원');
 }
