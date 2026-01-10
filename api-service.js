@@ -55,8 +55,11 @@ class AnimoraAPIService {
             }
             
         } catch (error) {
-            console.error('AI 분석 생성 오류:', error);
+            console.error('❌ AI 분석 생성 오류:', error);
+            console.error('오류 상세:', error.message);
+            console.error('오류 스택:', error.stack);
             // 오류 시 기본 분석 반환
+            alert('⚠️ API 호출 실패: ' + error.message + '\n\nMock 응답을 표시합니다.');
             return this._getMockAIResponse(analysisData, questionType);
         }
     }
