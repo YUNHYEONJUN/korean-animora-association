@@ -470,13 +470,7 @@ function generatePersonalAnalysis(name, month, day) {
                 </div>
             </div>
             
-            <div style="text-align: center;">
-                <a href="https://chatgpt.com/g/g-6805285f91a08191927f5e111e1f44dd-animora-naemyeonyi-dongmuli-malhan" 
-                   target="_blank" 
-                   class="ai-link-btn">
-                    🤖 아니모라 AI로 더 상세한 해석 받기
-                </a>
-            </div>
+
         </div>
     `;
 }
@@ -554,13 +548,7 @@ function generateCoupleAnalysis(person1, person2) {
                 </div>
             </div>
             
-            <div style="text-align: center;">
-                <a href="https://chatgpt.com/g/g-6805285f91a08191927f5e111e1f44dd-animora-naemyeonyi-dongmuli-malhan" 
-                   target="_blank" 
-                   class="ai-link-btn">
-                    🤖 아니모라 AI로 더 상세한 궁합 해석 받기
-                </a>
-            </div>
+
         </div>
     `;
 }
@@ -638,13 +626,7 @@ function generateFamilyAnalysis(members) {
                 </div>
             </div>
             
-            <div style="text-align: center;">
-                <a href="https://chatgpt.com/g/g-6805285f91a08191927f5e111e1f44dd-animora-naemyeonyi-dongmuli-malhan" 
-                   target="_blank" 
-                   class="ai-link-btn">
-                    🤖 아니모라 AI로 더 상세한 가족 관계 해석 받기
-                </a>
-            </div>
+
         </div>
     `;
 }

@@ -98,16 +98,11 @@ function convertDate() {
         document.getElementById('animora-country').textContent = country;
         document.getElementById('animora-animal').textContent = animal;
         
-        // 아니모라 분석 & AI 링크 버튼 추가
+        // 아니모라 분석 버튼 추가
         const buttons = `
             <div class="animora-buttons">
                 <a href="analysis.html" class="animora-analysis-btn">
                    📊 성격 분석 & 궁합 보기
-                </a>
-                <a href="https://chatgpt.com/g/g-6805285f91a08191927f5e111e1f44dd-animora-naemyeonyi-dongmuli-malhaneun-insaeng" 
-                   target="_blank" 
-                   class="animora-ai-btn">
-                   🤖 아니모라 AI로 상세 해석 받기
                 </a>
             </div>
         `;
