@@ -36,7 +36,9 @@ class AnimoraAPIService {
                     questionType,
                     timestamp: new Date().toISOString()
                 }),
-                mode: 'cors'
+                mode: 'cors',
+                credentials: 'omit',
+                cache: 'no-cache'
             });
             
             if (!response.ok) {
@@ -104,7 +106,9 @@ class AnimoraAPIService {
                     data,
                     timestamp: new Date().toISOString()
                 }),
-                mode: 'cors'
+                mode: 'cors',
+                credentials: 'omit',
+                cache: 'no-cache'
             });
             
             if (!response.ok) {
