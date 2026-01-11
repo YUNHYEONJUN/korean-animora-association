@@ -517,3 +517,18 @@
         padding: 10px 20px;
     }
 }
+
+/* 푸터 링크 스타일 */
+.footer-section a {
+    color: rgba(255, 255, 255, 0.9) !important;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.footer-section a:hover {
+    color: white !important;
+}
+
+.footer-section a:visited {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
