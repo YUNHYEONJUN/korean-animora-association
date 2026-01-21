@@ -11,6 +11,7 @@ from openai import OpenAI
 import os
 import json
 from datetime import datetime
+from pathlib import Path
 
 app = Flask(__name__)
 
@@ -28,6 +29,39 @@ client = OpenAI(
 
 # 기본 모델 설정 (젠스파크 프록시 지원 모델)
 DEFAULT_MODEL = "gpt-5"
+
+# 아니모라 지식 베이스 로드
+KNOWLEDGE_BASE_PATH = Path(__file__).parent / "animora_knowledge.json"
+ANIMORA_KNOWLEDGE = {}
+
+def load_knowledge_base():
+    """PDF에서 추출한 아니모라 지식 베이스 로드"""
+    global ANIMORA_KNOWLEDGE
+    try:
+        if KNOWLEDGE_BASE_PATH.exists():
+            with open(KNOWLEDGE_BASE_PATH, 'r', encoding='utf-8') as f:
+                ANIMORA_KNOWLEDGE = json.load(f)
+            print(f"✅ 지식 베이스 로드 완료:")
+            print(f"   - 월별 나라: {len(ANIMORA_KNOWLEDGE.get('months', {}))}개")
+            print(f"   - 대표 조합: {len(ANIMORA_KNOWLEDGE.get('combinations', {}))}개")
+        else:
+            print(f"⚠️ 지식 베이스 파일 없음: {KNOWLEDGE_BASE_PATH}")
+    except Exception as e:
+        print(f"❌ 지식 베이스 로드 실패: {e}")
+
+# 앱 시작 시 지식 베이스 로드
+load_knowledge_base()
+
+def get_month_knowledge(month):
+    """특정 월의 상세 설명 가져오기"""
+    months = ANIMORA_KNOWLEDGE.get('months', {})
+    return months.get(str(month), {}).get('content', '')
+
+def get_combination_knowledge(month, day):
+    """특정 조합의 분석 내용 가져오기"""
+    combinations = ANIMORA_KNOWLEDGE.get('combinations', {})
+    key = f"{month}월{day}일"
+    return combinations.get(key, {}).get('content', '')
 
 # 아니모라 시스템 프롬프트
 ANIMORA_SYSTEM_PROMPT = """당신은 한국아니모라협회의 전문 상담사입니다.
@@ -318,6 +352,10 @@ def generate_personal_prompt(data, question_type):
     country = data.get('country', '')
     animal = data.get('animal', '')
     
+    # 지식 베이스에서 상세 정보 가져오기
+    month_knowledge = get_month_knowledge(month)
+    combination_knowledge = get_combination_knowledge(month, day)
+    
     prompt = f"""
 [개인 성격 분석 요청]
 
@@ -325,14 +363,34 @@ def generate_personal_prompt(data, question_type):
 음력 생일: {month}월 {day}일
 나라(환경): {country}
 동물(본성): {animal}
+"""
+    
+    # 월별 나라 상세 정보 추가
+    if month_knowledge:
+        prompt += f"""
 
-위 정보를 바탕으로 다음을 분석해주세요:
+## 📚 {country} 상세 특성 (PDF 원문)
+{month_knowledge[:1500]}
 
-1. **자라난 환경 분석** ({country}의 영향)
+"""
+    
+    # 조합 분석 원문 추가
+    if combination_knowledge:
+        prompt += f"""
+
+## 🎯 {month}월 {day}일 조합 분석 (PDF 원문)
+{combination_knowledge[:1500]}
+
+"""
+    
+    prompt += """
+위 PDF 원문 내용을 **반드시 참고**하여 다음을 분석해주세요:
+
+1. **자라난 환경 분석** (나라의 영향)
    - 어떤 환경에서 자랐으며, 이것이 성격 형성에 어떤 영향을 주었나요?
    - 부모나 가정환경의 특성은 무엇인가요?
 
-2. **내면의 본성** ({animal}의 특성)
+2. **내면의 본성** (동물의 특성)
    - 타고난 성격과 기질은 어떤가요?
    - 강점과 약점은 무엇인가요?
 
@@ -344,7 +402,7 @@ def generate_personal_prompt(data, question_type):
    - 이 유형에 맞는 구체적인 생활 방식은?
    - 관계, 직장, 자기계발에서의 팁
 
-따뜻하고 공감적인 톤으로, 실용적인 조언을 해주세요.
+**중요**: PDF 원문의 표현과 통찰을 최대한 살려서, 따뜻하고 공감적인 톤으로 작성해주세요.
 """
     
     if question_type == 'detailed':
@@ -358,6 +416,64 @@ def generate_couple_prompt(data, question_type):
     person1 = data.get('person1', {})
     person2 = data.get('person2', {})
     score = data.get('compatibilityScore', 0)
+    
+    # 지식 베이스에서 정보 가져오기
+    p1_month_knowledge = get_month_knowledge(person1.get('month'))
+    p2_month_knowledge = get_month_knowledge(person2.get('month'))
+    p1_combo_knowledge = get_combination_knowledge(person1.get('month'), person1.get('day'))
+    p2_combo_knowledge = get_combination_knowledge(person2.get('month'), person2.get('day'))
+    
+    prompt = f"""
+[커플 궁합 분석 요청]
+
+👤 첫 번째 사람: {person1.get('name')} ({person1.get('gender')})
+   - 음력 생일: {person1.get('month')}월 {person1.get('day')}일
+   - 나라: {person1.get('country')}
+   - 동물: {person1.get('animal')}
+
+👤 두 번째 사람: {person2.get('name')} ({person2.get('gender')})
+   - 음력 생일: {person2.get('month')}월 {person2.get('day')}일
+   - 나라: {person2.get('country')}
+   - 동물: {person2.get('animal')}
+
+💯 궁합 점수: {score}점
+"""
+    
+    # PDF 원문 추가
+    if p1_month_knowledge:
+        prompt += f"\n\n## 📚 {person1.get('name')}의 나라 ({person1.get('country')}) 특성\n{p1_month_knowledge[:800]}\n"
+    if p2_month_knowledge:
+        prompt += f"\n\n## 📚 {person2.get('name')}의 나라 ({person2.get('country')}) 특성\n{p2_month_knowledge[:800]}\n"
+    if p1_combo_knowledge:
+        prompt += f"\n\n## 🎯 {person1.get('name')}의 조합 분석\n{p1_combo_knowledge[:800]}\n"
+    if p2_combo_knowledge:
+        prompt += f"\n\n## 🎯 {person2.get('name')}의 조합 분석\n{p2_combo_knowledge[:800]}\n"
+    
+    prompt += """
+
+위 PDF 원문을 **반드시 참고**하여, 이모지와 구조화된 형식으로 분석해주세요:
+
+1️⃣ **두 사람의 개별 특성**
+   - 각 사람의 나라와 동물이 만들어내는 고유한 성격
+   - 강점과 약점
+
+2️⃣ **관계 역학**
+   - 서로 어떻게 끌리는가?
+   - 포식-보완 관계는?
+   - 잘 맞을 때 vs 어긋날 때의 구체적 시나리오
+
+3️⃣ **실천 조언**
+   - 성별/역할별 구체적 조언
+   - 화해 방법, 소통 팁
+
+💬 **한 문장 요약**: 이 관계를 한 문장으로 표현
+
+🖋 **마무리**: 철학적이고 기억에 남는 시그니처 문장
+
+**스타일**: PDF 원문의 은유와 표현을 살려서, 2000-3000자 분량으로 작성해주세요.
+"""
+    
+    return prompt
     
     gender1 = '남성' if person1.get('gender') == 'male' else '여성'
     gender2 = '남성' if person2.get('gender') == 'male' else '여성'
