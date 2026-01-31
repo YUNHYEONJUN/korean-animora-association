@@ -1,7 +1,8 @@
 /* 아니모라 분석 페이지 스타일 */
 
 .hero-section {
-    background: linear-gradient(135deg, #2c3e89 0%, #4a5fc1 100%);
+    background: linear-gradient(rgba(44, 62, 137, 0.65), rgba(74, 95, 193, 0.65)), 
+                url('https://www.genspark.ai/api/files/s/6jxuTGVw?cache_control=3600') center center / cover no-repeat;
     color: white;
     padding: 120px 0 80px;
     text-align: center;
