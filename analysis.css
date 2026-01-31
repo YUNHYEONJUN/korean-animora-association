@@ -1,7 +1,7 @@
 /* 아니모라 분석 페이지 스타일 */
 
 .hero-section {
-    background: linear-gradient(rgba(44, 62, 137, 0.65), rgba(74, 95, 193, 0.65)), 
+    background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), 
                 url('https://www.genspark.ai/api/files/s/6jxuTGVw?cache_control=3600') center center / cover no-repeat;
     color: white;
     padding: 120px 0 80px;
@@ -27,6 +27,8 @@
     margin-bottom: 20px;
     position: relative;
     z-index: 1;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5),
+                 0 0 20px rgba(0, 0, 0, 0.3);
 }
 
 .hero-subtitle {
@@ -34,6 +36,8 @@
     opacity: 0.95;
     position: relative;
     z-index: 1;
+    text-shadow: 1px 1px 6px rgba(0, 0, 0, 0.5),
+                 0 0 15px rgba(0, 0, 0, 0.3);
 }
 
 /* 분석 타입 선택 */
