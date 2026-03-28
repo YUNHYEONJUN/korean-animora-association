@@ -78,8 +78,7 @@
 }
 
 .overview-icon {
-    font-size: 3.5rem;
-    margin-bottom: 1.5rem;
+    display: none;
 }
 
 .overview-card h3 {
@@ -291,8 +290,7 @@
 }
 
 .benefit-icon {
-    font-size: 3.5rem;
-    margin-bottom: 1.5rem;
+    display: none;
 }
 
 .benefit-card h3 {
