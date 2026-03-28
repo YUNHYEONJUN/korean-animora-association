@@ -33,6 +33,7 @@
     font-weight: 900;
     margin-bottom: 1rem;
     line-height: 1.2;
+    text-wrap: balance;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
@@ -77,9 +78,6 @@
     box-shadow: var(--shadow-md);
 }
 
-.overview-icon {
-    display: none;
-}
 
 .overview-card h3 {
     font-size: 1.4rem;
@@ -132,7 +130,7 @@
     position: absolute;
     top: -15px;
     left: 30px;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background: var(--gradient-primary);
     color: white;
     width: 45px;
     height: 45px;
@@ -171,7 +169,7 @@
 }
 
 .day-header {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background: var(--gradient-primary);
     color: white;
     padding: 30px 40px;
     text-align: center;
@@ -289,9 +287,6 @@
     background: linear-gradient(135deg, rgba(44, 62, 137, 0.02), rgba(74, 95, 193, 0.02));
 }
 
-.benefit-icon {
-    display: none;
-}
 
 .benefit-card h3 {
     font-size: 1.4rem;
@@ -424,7 +419,7 @@
 }
 
 .cta-card {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background: var(--gradient-primary);
     color: white;
     padding: 40px 30px;
     border-radius: 20px;
@@ -548,8 +543,3 @@
     }
 }
 
-/* Active nav link */
-.nav-menu a.active {
-    color: var(--secondary-color);
-    font-weight: 700;
-}

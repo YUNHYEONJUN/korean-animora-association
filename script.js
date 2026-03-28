@@ -37,6 +37,14 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 const navbar = document.querySelector('.navbar');
 const sections = document.querySelectorAll('section[id]');
 
+// Scroll to Top Button
+const scrollTopBtn = document.getElementById('scroll-top');
+if (scrollTopBtn) {
+    scrollTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
 window.addEventListener('scroll', () => {
     const currentScroll = window.scrollY;
 
@@ -45,6 +53,11 @@ window.addEventListener('scroll', () => {
         navbar.style.boxShadow = currentScroll > 50
             ? '0 4px 12px rgba(0,0,0,0.15)'
             : '0 2px 8px rgba(0,0,0,0.08)';
+    }
+
+    // Scroll to top button visibility
+    if (scrollTopBtn) {
+        scrollTopBtn.classList.toggle('visible', currentScroll > 400);
     }
 
     // Active navigation link

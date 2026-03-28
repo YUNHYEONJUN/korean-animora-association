@@ -26,20 +26,23 @@
         <div class="container">
             <div class="nav-brand">
                 <h1>한국아니모라협회</h1>
-                <p class="tagline">Korean Animora Association</p>
+                <p class="nav-subtitle">Korean Animora Association</p>
             </div>
             <ul class="nav-menu">
                 <li><a href="index.html">홈</a></li>
-                <li><a href="index.html#about">소개</a></li>
-                <li><a href="education.html">교육과정</a></li>
+                <li><a href="index.html#about">협회소개</a></li>
+                <li><a href="index.html#animora">아니모라란?</a></li>
+                <li><a href="index.html#president">협회장 소개</a></li>
+                <li><a href="index.html#converter">생일 변환</a></li>
                 <li><a href="analysis.html" class="active">성격분석·궁합</a></li>
+                <li><a href="education.html">교육과정</a></li>
                 <li><a href="index.html#contact">문의</a></li>
             </ul>
-            <button class="mobile-menu-toggle" aria-label="메뉴">
+            <div class="hamburger" aria-label="메뉴" role="button" tabindex="0">
                 <span></span>
                 <span></span>
                 <span></span>
-            </button>
+            </div>
         </div>
     </nav>
 
@@ -288,33 +291,36 @@
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <div class="footer-section">
+                <div class="footer-info">
                     <h3>한국아니모라협회</h3>
                     <p>Korean Animora Association</p>
-                    <p class="copyright">© 2025 한국아니모라협회. All rights reserved.</p>
+                    <p class="copyright">© 2025-2026 아니모라 Animora. All rights reserved.</p>
+                    <p class="copyright-notice">이 자료의 저작권은 [아니모라 Animora]에게 있으며,<br>허가 없이 복제, 배포, 전송, 게시 등의 행위를 금지합니다.</p>
                 </div>
-                
-                <div class="footer-section">
-                    <h4>바로가기</h4>
-                    <ul>
-                        <li><a href="index.html">홈</a></li>
-                        <li><a href="index.html#about">협회 소개</a></li>
-                        <li><a href="education.html">교육과정</a></li>
-                        <li><a href="analysis.html">성격분석·궁합</a></li>
-                    </ul>
-                </div>
-                
-                <div class="footer-section">
-                    <h4>문의</h4>
-                    <ul>
-                        <li>animora@example.com</li>
-                        <li>카카오톡: @아니모라협회</li>
-                    </ul>
+
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h4>협회 정보</h4>
+                        <ul>
+                            <li><a href="index.html#about">협회 소개</a></li>
+                            <li><a href="index.html#president">협회장 소개</a></li>
+                            <li><a href="index.html#contact">문의하기</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-column">
+                        <h4>아니모라</h4>
+                        <ul>
+                            <li><a href="index.html#animora">아니모라란?</a></li>
+                            <li><a href="analysis.html">성격분석·궁합</a></li>
+                            <li><a href="education.html">교육과정</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
     </footer>
 
+    <button id="scroll-top" class="scroll-top-btn" aria-label="맨 위로 이동">↑</button>
     <script src="script.js"></script>
 </body>
 </html>
