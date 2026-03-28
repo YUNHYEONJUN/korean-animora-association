@@ -94,6 +94,18 @@ body {
     transition: all 0.3s ease;
 }
 
+.hamburger.active span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 6px);
+}
+
+.hamburger.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -6px);
+}
+
 /* Hero Section */
 .hero {
     position: relative;
@@ -729,6 +741,8 @@ body {
 
 .animal-table-wrapper {
     margin: 60px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .animal-table-wrapper h3 {

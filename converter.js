@@ -127,7 +127,11 @@ function convertDate() {
         }, 100);
         
     } catch (error) {
-        resultDiv.innerHTML = `<p class="result-error">⚠️ 변환 중 오류가 발생했습니다: ${error.message}</p>`;
+        const errorP = document.createElement('p');
+        errorP.className = 'result-error';
+        errorP.textContent = '⚠️ 변환 중 오류가 발생했습니다: ' + error.message;
+        resultDiv.innerHTML = '';
+        resultDiv.appendChild(errorP);
         animoraInfo.style.display = 'none';
     }
 }
