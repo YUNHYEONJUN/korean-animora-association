@@ -1,0 +1,14 @@
+{
+  "name": "animora-api-worker",
+  "version": "1.0.0",
+  "description": "한국아니모라협회 AI 분석 백엔드 (Cloudflare Workers)",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

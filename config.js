@@ -17,7 +17,7 @@ const ANIMORA_CONFIG = {
         // 백엔드 API 엔드포인트 (✅ 연동 완료)
         backend: {
             enabled: true,
-            baseUrl: 'https://5000-ixqb0zibgw9tuywj5fxfb-2e1b9533.sandbox.novita.ai/api', // Flask 백엔드 서버
+            baseUrl: 'https://animora-api.yoonhj79.workers.dev/api', // Cloudflare Workers 백엔드
             endpoints: {
                 analysis: '/ai-analysis',
                 customQuestion: '/custom-question',
