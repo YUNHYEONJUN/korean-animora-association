@@ -116,6 +116,26 @@ body {
     transform: rotate(-45deg) translate(5px, -6px);
 }
 
+/* Skip navigation link */
+.skip-link {
+    position: absolute;
+    top: -100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary-color);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 0 0 8px 8px;
+    z-index: 10000;
+    font-weight: 600;
+    text-decoration: none;
+    transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
 /* Mobile menu backdrop */
 .menu-backdrop {
     display: none;
@@ -656,24 +676,6 @@ body {
 .president-photo {
     position: sticky;
     top: 100px;
-}
-
-.photo-placeholder {
-    width: 100%;
-    aspect-ratio: 3/4;
-    background: var(--gradient-primary);
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: var(--shadow-lg);
-}
-
-.photo-text {
-    color: white;
-    font-size: 1.5rem;
-    font-weight: 700;
-    text-align: center;
 }
 
 .president-image {
@@ -1368,9 +1370,7 @@ body {
     .contact-info {
         grid-template-columns: 1fr;
     }
-}
 
-@media (max-width: 768px) {
     .converter-card {
         grid-template-columns: 1fr;
         padding: 30px 20px;

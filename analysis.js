@@ -842,18 +842,18 @@ function addPremiumButtons(container, analysisData) {
 
 // 분석 저장
 function saveAnalysisToHistory() {
-    if (!window.currentAnalysisData) {
-        alert('저장할 분석 데이터가 없습니다.');
-        return;
-    }
-    
-    const saved = storageService.saveAnalysis(window.currentAnalysisData);
-    
-    if (saved) {
-        const stats = storageService.getStatistics();
-        alert(`✅ 분석이 저장되었습니다!\n저장된 분석: ${stats.total}개`);
-    } else {
-        alert('❌ 저장 중 오류가 발생했습니다.');
+    if (!window.currentAnalysisData) return;
+
+    try {
+        const saved = storageService.saveAnalysis(window.currentAnalysisData);
+        const btn = document.querySelector('.save-btn');
+        if (btn && saved) {
+            btn.textContent = '저장 완료';
+            btn.style.opacity = '0.7';
+            btn.disabled = true;
+        }
+    } catch (error) {
+        console.error('저장 오류:', error);
     }
 }
 
@@ -905,40 +905,50 @@ function closeShareModal() {
 // AI 상세 분석 요청
 async function requestAIAnalysis() {
     if (!window.currentAnalysisData) {
-        alert('분석 데이터가 없습니다. 먼저 기본 분석을 진행해주세요.');
         return;
     }
-    
+
     // 로딩 표시
-    const btn = event.target;
+    const btn = document.querySelector('.premium-upgrade-btn');
+    if (!btn) return;
     const originalText = btn.innerHTML;
-    btn.innerHTML = '⏳ AI 분석 중... (약 10초 소요)';
+    btn.innerHTML = '분석 중... (약 10초 소요)';
     btn.disabled = true;
-    
+    btn.style.opacity = '0.7';
+
     try {
         // API 활성화 확인
         if (!ANIMORA_CONFIG.api.openai.enabled) {
             throw new Error('API가 비활성화되어 있습니다');
         }
-        
+
         console.log('AI 분석 요청 시작:', window.currentAnalysisData);
-        
+
         // AI 분석 생성
         const aiAnalysis = await animoraAPI.generateAIAnalysis(
-            window.currentAnalysisData, 
+            window.currentAnalysisData,
             'detailed'
         );
-        
+
         // 결과 표시
         displayAIAnalysisResult(aiAnalysis);
-        
+
     } catch (error) {
         console.error('AI 분석 오류:', error);
-        alert('❌ AI 분석 중 오류가 발생했습니다.\n' + error.message + '\n\n기본 분석은 이미 제공되었습니다.');
+        // 인라인 에러 메시지 표시
+        const resultContent = document.getElementById('result-content');
+        const errorHTML = `
+            <div class="result-card" style="margin-top: 20px; border-left: 4px solid #e74c3c; background: #fef2f2;">
+                <p style="color: #e74c3c; font-weight: 600;">AI 분석을 불러오지 못했습니다.</p>
+                <p style="color: #666; margin-top: 8px;">잠시 후 다시 시도해주세요. 기본 분석은 위에서 확인하실 수 있습니다.</p>
+            </div>
+        `;
+        resultContent.insertAdjacentHTML('beforeend', errorHTML);
     } finally {
         // 버튼 복구
         btn.innerHTML = originalText;
         btn.disabled = false;
+        btn.style.opacity = '';
     }
 }
 

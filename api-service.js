@@ -23,9 +23,12 @@ class AnimoraAPIService {
         try {
             // 실제 API 호출은 백엔드를 통해 진행 (보안)
             const apiUrl = this.config.api.backend.baseUrl + this.config.api.backend.endpoints.analysis;
-            
+
             console.log('API 호출 중:', apiUrl);
-            
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
@@ -38,8 +41,11 @@ class AnimoraAPIService {
                 }),
                 mode: 'cors',
                 credentials: 'omit',
-                cache: 'no-cache'
+                cache: 'no-cache',
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
             
             if (!response.ok) {
                 const errorText = await response.text();
@@ -61,7 +67,6 @@ class AnimoraAPIService {
             console.error('오류 상세:', error.message);
             console.error('오류 스택:', error.stack);
             // 오류 시 기본 분석 반환
-            alert('⚠️ API 호출 실패: ' + error.message + '\n\nMock 응답을 표시합니다.');
             return this._getMockAIResponse(analysisData, questionType);
         }
     }
@@ -103,9 +108,12 @@ class AnimoraAPIService {
         
         try {
             const apiUrl = this.config.api.backend.baseUrl + this.config.api.backend.endpoints.customQuestion;
-            
+
             console.log('맞춤 질문 API 호출:', apiUrl);
-            
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
@@ -119,8 +127,11 @@ class AnimoraAPIService {
                 }),
                 mode: 'cors',
                 credentials: 'omit',
-                cache: 'no-cache'
+                cache: 'no-cache',
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
             
             if (!response.ok) {
                 const errorText = await response.text();

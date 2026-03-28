@@ -10,10 +10,11 @@
     <meta property="og:url" content="https://yunhyeonjun.github.io/korean-animora-association/analysis.html">
     <meta property="og:image" content="https://yunhyeonjun.github.io/korean-animora-association/president-photo.jpg">
     <title>아니모라 성격 분석 & 궁합 해석 - 한국아니모라협회</title>
+    <link rel="canonical" href="https://yunhyeonjun.github.io/korean-animora-association/analysis.html">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232c3e89'/><text x='50' y='62' font-size='48' font-weight='bold' fill='%23d4af37' text-anchor='middle' font-family='serif'>A</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="analysis.css">
     <script src="config.js"></script>
@@ -24,6 +25,7 @@
     <script src="analysis.js" defer></script>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">본문 바로가기</a>
     <!-- 네비게이션 -->
     <nav class="navbar">
         <div class="container">
@@ -50,7 +52,7 @@
     </nav>
 
     <!-- 히어로 섹션 -->
-    <section class="hero-section">
+    <section id="main-content" class="hero-section">
         <div class="container">
             <h1 class="hero-title">아니모라 성격 분석 & 궁합 해석</h1>
             <p class="hero-subtitle">음력 생일로 본성과 환경을 파악하고, 관계의 조화를 발견하세요</p>
@@ -63,16 +65,16 @@
         <section class="analysis-type-section">
             <div class="container">
                 <div class="type-selector">
-                    <button class="type-btn active" data-type="personal">
-                        <span class="icon">👤</span>
+                    <button class="type-btn active" data-type="personal" aria-label="개인 성격 분석">
+                        <span class="icon" aria-hidden="true">👤</span>
                         <span class="text">개인 성격 분석</span>
                     </button>
-                    <button class="type-btn" data-type="couple">
-                        <span class="icon">💑</span>
+                    <button class="type-btn" data-type="couple" aria-label="커플 궁합 분석">
+                        <span class="icon" aria-hidden="true">💑</span>
                         <span class="text">커플 궁합 분석</span>
                     </button>
-                    <button class="type-btn" data-type="family">
-                        <span class="icon">👥</span>
+                    <button class="type-btn" data-type="family" aria-label="다중 관계 분석">
+                        <span class="icon" aria-hidden="true">👥</span>
                         <span class="text">다중 관계 분석</span>
                     </button>
                 </div>
