@@ -2,20 +2,31 @@
 const hamburger = document.querySelector('.hamburger');
 const navMenu = document.querySelector('.nav-menu');
 
+// Mobile menu backdrop
+const menuBackdrop = document.createElement('div');
+menuBackdrop.className = 'menu-backdrop';
+document.body.appendChild(menuBackdrop);
+
+function closeMenu() {
+    navMenu.classList.remove('active');
+    if (hamburger) hamburger.classList.remove('active');
+    menuBackdrop.classList.remove('active');
+}
+
 if (hamburger) {
     hamburger.addEventListener('click', () => {
-        navMenu.classList.toggle('active');
+        const isOpen = navMenu.classList.toggle('active');
         hamburger.classList.toggle('active');
+        menuBackdrop.classList.toggle('active', isOpen);
     });
 }
+
+menuBackdrop.addEventListener('click', closeMenu);
 
 // Close mobile menu when clicking on a link
 const navLinks = document.querySelectorAll('.nav-menu a');
 navLinks.forEach(link => {
-    link.addEventListener('click', () => {
-        navMenu.classList.remove('active');
-        if (hamburger) hamburger.classList.remove('active');
-    });
+    link.addEventListener('click', closeMenu);
 });
 
 // Smooth Scrolling

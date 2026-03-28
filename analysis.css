@@ -1,7 +1,8 @@
 /* 아니모라 분석 페이지 스타일 */
 
 .hero-section {
-    background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.25)), 
+    background-color: #1a2a5e;
+    background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.25)),
                 url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2071&auto=format&fit=crop') center center / cover no-repeat;
     color: white;
     padding: 120px 0 80px;

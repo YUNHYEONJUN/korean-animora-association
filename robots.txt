@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://yunhyeonjun.github.io/korean-animora-association/sitemap.xml

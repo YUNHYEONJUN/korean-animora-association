@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>페이지를 찾을 수 없습니다 - 한국아니모라협회</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232c3e89'/><text x='50' y='62' font-size='48' font-weight='bold' fill='%23d4af37' text-anchor='middle' font-family='serif'>A</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            color: #1a1a1a;
+        }
+        .error-page {
+            text-align: center;
+            padding: 40px 20px;
+            max-width: 500px;
+        }
+        .error-code {
+            font-size: 6rem;
+            font-weight: 900;
+            color: #2c3e89;
+            line-height: 1;
+            margin-bottom: 1rem;
+        }
+        .error-message {
+            font-size: 1.3rem;
+            color: #666;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        .home-link {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #2c3e89, #4a5fc1);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .home-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(44, 62, 137, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="error-page">
+        <div class="error-code">404</div>
+        <p class="error-message">요청하신 페이지를 찾을 수 없습니다.<br>주소를 다시 확인해주세요.</p>
+        <a href="index.html" class="home-link">홈으로 돌아가기</a>
+    </div>
+</body>
+</html>
