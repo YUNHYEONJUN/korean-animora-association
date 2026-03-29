@@ -824,7 +824,13 @@ function displayAIAnalysisResult(aiAnalysis) {
 
 // 맞춤형 질문 선택 모달
 function showCustomQuestions() {
-    const templates = ANIMORA_CONFIG.customQuestionTemplates;
+    const analysisType = window.currentAnalysisData ? window.currentAnalysisData.type : 'personal';
+    // 커플용 템플릿은 커플/가족 분석에서만 표시
+    const coupleOnlyTemplates = ['conflict_resolution'];
+    const templates = ANIMORA_CONFIG.customQuestionTemplates.filter(t => {
+        if (coupleOnlyTemplates.includes(t.id) && analysisType === 'personal') return false;
+        return true;
+    });
     
     let modalHTML = `
         <div class="custom-question-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px;">

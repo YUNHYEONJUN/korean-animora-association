@@ -79,7 +79,8 @@ class AnimoraAPIService {
     async askCustomQuestion(data) {
         let prompt;
         let templateId = data.questionType;
-        
+        let template = null;
+
         // 자유 질문인 경우
         if (data.questionType === 'free_form') {
             const context = data.variables.context || '';
@@ -87,23 +88,26 @@ class AnimoraAPIService {
             prompt = `${context}\n\n질문: ${question}\n\n위의 아니모라 성격 분석 정보를 바탕으로 질문에 대해 전문적이고 구체적인 답변을 한국어로 제공해주세요.`;
         } else {
             // 템플릿 질문인 경우
-            const template = this.config.customQuestionTemplates.find(
+            template = this.config.customQuestionTemplates.find(
                 t => t.id === data.questionType
             );
-            
+
             if (!template) {
                 throw new Error('지원하지 않는 질문 유형입니다.');
             }
-            
+
             // 프롬프트 생성
             prompt = template.prompt;
             Object.keys(data.variables).forEach(key => {
-                prompt = prompt.replace(`{{${key}}}`, data.variables[key]);
+                prompt = prompt.replace(new RegExp('\\{\\{' + key + '\\}\\}', 'g'), data.variables[key] || '');
             });
         }
-        
+
         if (!this.config.api.openai.enabled) {
-            return this._getMockCustomResponse(template.id, data);
+            if (data.questionType === 'free_form') {
+                return '<div class="custom-answer"><h4>직접 질문 (미리보기)</h4><p><strong>실제 AI 분석은 API 연동 후 제공됩니다.</strong></p><p>질문을 접수했습니다. API 연동 시 맞춤형 답변을 받으실 수 있습니다.</p></div>';
+            }
+            return this._getMockCustomResponse(templateId, data);
         }
         
         try {
@@ -214,15 +218,17 @@ class AnimoraAPIService {
      * Mock 맞춤 질문 응답
      */
     _getMockCustomResponse(templateId, data) {
+        const v = data.variables || {};
+        const personName = v.person || v.person1 || '사용자';
+
         const mockResponses = {
             conflict_resolution: `
                 <div class="custom-answer">
-                    <h4>🤝 화해 방법 (미리보기)</h4>
-                    <p><strong>⚠️ 실제 AI 분석은 API 연동 후 제공됩니다.</strong></p>
-                    <p>API 연동 시 제공될 내용 예시:</p>
+                    <h4>화해 방법 (미리보기)</h4>
+                    <p><strong>실제 AI 분석은 API 연동 후 제공됩니다.</strong></p>
+                    <p>API 연동 시 제공될 내용:</p>
                     <ol>
-                        <li><strong>타이밍:</strong> ${data.variables.person1}의 유형은 즉시 대화를 선호하지만, 
-                        ${data.variables.person2}는 시간을 두고 정리하는 것이 좋습니다.</li>
+                        <li><strong>타이밍:</strong> 각 유형에 맞는 화해 시점 분석</li>
                         <li><strong>대화 방식:</strong> 구체적인 상황과 감정을 표현하는 방법</li>
                         <li><strong>화해 제스처:</strong> 각 유형에 맞는 효과적인 화해 방법</li>
                     </ol>
@@ -230,34 +236,66 @@ class AnimoraAPIService {
             `,
             gift_suggestion: `
                 <div class="custom-answer">
-                    <h4>🎁 선물 추천 (미리보기)</h4>
-                    <p><strong>⚠️ 실제 AI 분석은 API 연동 후 제공됩니다.</strong></p>
-                    <p>API 연동 시 5가지 맞춤 선물 추천 예시:</p>
+                    <h4>선물 추천 (미리보기)</h4>
+                    <p><strong>실제 AI 분석은 API 연동 후 제공됩니다.</strong></p>
+                    <p>${personName}님의 유형에 맞는 선물 추천:</p>
                     <ul>
                         <li>1. 유형 특성에 맞는 경험형 선물</li>
                         <li>2. 감성을 자극하는 실용적 아이템</li>
                         <li>3. 취미와 관련된 프리미엄 용품</li>
-                        <li>4. 개인 성장을 돕는 선물</li>
-                        <li>5. 관계를 돈독하게 하는 추억 선물</li>
                     </ul>
                 </div>
             `,
             teen_communication: `
                 <div class="custom-answer">
-                    <h4>👨‍👧 사춘기 대화법 (미리보기)</h4>
-                    <p><strong>⚠️ 실제 AI 분석은 API 연동 후 제공됩니다.</strong></p>
+                    <h4>사춘기 대화법 (미리보기)</h4>
+                    <p><strong>실제 AI 분석은 API 연동 후 제공됩니다.</strong></p>
                     <p>API 연동 시 제공될 구체적 대화 전략:</p>
                     <ol>
                         <li>자녀의 유형별 감정 표현 방식 이해</li>
                         <li>효과적인 경청 및 공감 방법</li>
                         <li>갈등 상황별 대응 스크립트</li>
-                        <li>신뢰 구축을 위한 일상 대화 팁</li>
                     </ol>
+                </div>
+            `,
+            career_advice: `
+                <div class="custom-answer">
+                    <h4>진로 조언 (미리보기)</h4>
+                    <p><strong>실제 AI 분석은 API 연동 후 제공됩니다.</strong></p>
+                    <p>${personName}님의 유형에 맞는 직업 추천과 커리어 전략을 받아보세요.</p>
+                </div>
+            `,
+            health_wellness: `
+                <div class="custom-answer">
+                    <h4>건강 조언 (미리보기)</h4>
+                    <p><strong>실제 AI 분석은 API 연동 후 제공됩니다.</strong></p>
+                    <p>${personName}님의 유형에 맞는 건강 관리법을 받아보세요.</p>
+                </div>
+            `,
+            financial_habits: `
+                <div class="custom-answer">
+                    <h4>재테크 조언 (미리보기)</h4>
+                    <p><strong>실제 AI 분석은 API 연동 후 제공됩니다.</strong></p>
+                    <p>${personName}님의 유형에 맞는 재테크 전략을 받아보세요.</p>
+                </div>
+            `,
+            study_method: `
+                <div class="custom-answer">
+                    <h4>학습법 조언 (미리보기)</h4>
+                    <p><strong>실제 AI 분석은 API 연동 후 제공됩니다.</strong></p>
+                    <p>${personName}님의 유형에 맞는 학습 전략을 받아보세요.</p>
+                </div>
+            `,
+            stress_management: `
+                <div class="custom-answer">
+                    <h4>스트레스 관리 (미리보기)</h4>
+                    <p><strong>실제 AI 분석은 API 연동 후 제공됩니다.</strong></p>
+                    <p>${personName}님의 유형에 맞는 스트레스 해소법을 받아보세요.</p>
                 </div>
             `
         };
-        
-        return mockResponses[templateId] || mockResponses.conflict_resolution;
+
+        return mockResponses[templateId] || `<div class="custom-answer"><h4>맞춤 분석 (미리보기)</h4><p><strong>실제 AI 분석은 API 연동 후 제공됩니다.</strong></p></div>`;
     }
 }
 
