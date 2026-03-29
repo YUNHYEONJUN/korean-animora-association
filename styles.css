@@ -1854,10 +1854,14 @@ body {
 }
 
 .country-month {
-    font-size: 0.8rem;
-    color: var(--text-light);
-    font-weight: 600;
-    min-width: 30px;
+    font-size: 0.75rem;
+    color: white;
+    font-weight: 700;
+    min-width: 32px;
+    background: var(--primary-color);
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-align: center;
 }
 
 .country-compact-header h4 {
