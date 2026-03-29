@@ -35,6 +35,7 @@ const requiredFiles = [
     'styles.css', 'analysis.css', 'education.css',
     'script.js', 'analysis.js', 'api-service.js', 'config.js',
     'lunar-converter.js', 'storage-service.js', 'premium-features.js',
+    'animora-data.js', 'homepage-analysis.js', 'animal-icons.js',
     'robots.txt', 'sitemap.xml'
 ];
 requiredFiles.forEach(f => {
@@ -47,11 +48,11 @@ const pages = ['index.html', 'analysis.html', 'education.html'];
 console.log('\n🔗 네비게이션 일관성');
 pages.forEach(page => {
     const html = readFile(page);
-    test(`${page}: 네비게이션 8개 메뉴`, () => {
+    test(`${page}: 네비게이션 5개 메뉴`, () => {
         const navSection = html.match(/<ul class="nav-menu">([\s\S]*?)<\/ul>/);
         assert(navSection, 'nav-menu 영역 없음');
         const navItems = navSection[1].match(/<li>/g);
-        assert(navItems && navItems.length === 8, `메뉴 ${navItems ? navItems.length : 0}개 (8개 필요)`);
+        assert(navItems && navItems.length === 5, `메뉴 ${navItems ? navItems.length : 0}개 (5개 필요)`);
     });
     test(`${page}: 홈 링크 존재`, () => {
         assert(html.includes('href="index.html">홈</a>'), '홈 링크 없음');
@@ -153,7 +154,6 @@ test('hero fallback background-color 존재', () => {
 
 test('중복 @media 768px 병합 확인', () => {
     const matches = css.match(/@media \(max-width: 768px\)/g);
-    // 하나는 메인, 하나는 table scroll hint = 2개만 있어야 함
     assert(matches && matches.length <= 2, `@media 768px ${matches ? matches.length : 0}개 (2개 이하 필요)`);
 });
 
@@ -199,6 +199,11 @@ test('analysis.js: 인라인 에러 메시지', () => {
     assert(analysisJs.includes('AI 분석을 불러오지 못했습니다'), '인라인 에러 메시지 없음');
 });
 
+test('analysis.js: 공유 데이터 참조 (animora-data.js)', () => {
+    assert(analysisJs.includes('ANIMORA_COUNTRIES'), '공유 데이터 참조 없음');
+    assert(analysisJs.includes('ANIMORA_ANIMALS'), '공유 동물 데이터 참조 없음');
+});
+
 console.log('\n📅 교육과정 날짜');
 const eduHtml = readFile('education.html');
 test('교육과정: 2026년 날짜', () => {
@@ -211,6 +216,12 @@ test('교육과정: 2026년 날짜', () => {
 test('교육과정: 2025년 과거 날짜 제거', () => {
     assert(!eduHtml.includes('2025.02.14'), '과거 날짜 남아있음');
     assert(!eduHtml.includes('2025.03.14'), '과거 날짜 남아있음');
+});
+
+test('교육과정: 혜택 섹션이 가격보다 앞에 위치', () => {
+    const benefitsPos = eduHtml.indexOf('WHY THIS COURSE');
+    const overviewPos = eduHtml.indexOf('EDUCATION PROGRAM');
+    assert(benefitsPos < overviewPos, '혜택 섹션이 교육과정 개요보다 뒤에 있음');
 });
 
 console.log('\n🏗️ 구조 일관성');
@@ -245,6 +256,86 @@ test('404.html: 에러 코드 표시', () => {
 });
 test('404.html: 홈 링크', () => {
     assert(page404.includes('href="index.html"'), '홈 링크 없음');
+});
+
+console.log('\n🏠 홈페이지 개선 검증');
+const indexHtml = readFile('index.html');
+
+test('홈: 원스텝 분석기 존재', () => {
+    assert(indexHtml.includes('hero-analyzer'), '분석기 없음');
+    assert(indexHtml.includes('runHomeAnalysis'), '분석 함수 호출 없음');
+});
+
+test('홈: CTA 버튼 반복 배치', () => {
+    const ctaCount = (indexHtml.match(/무료로 내 아니모라 확인하기/g) || []).length;
+    assert(ctaCount >= 3, `CTA 버튼 ${ctaCount}개 (3개 이상 필요)`);
+});
+
+test('홈: 샘플 결과 미리보기', () => {
+    assert(indexHtml.includes('sample-result-card'), '샘플 결과 카드 없음');
+});
+
+test('홈: 축소형 나라 카드 (클릭 확장)', () => {
+    assert(indexHtml.includes('country-compact-card'), '축소형 나라 카드 없음');
+    assert(indexHtml.includes('toggleCountry'), '토글 함수 없음');
+});
+
+test('홈: 비교표 개선 (기존 성격 분석 vs 아니모라)', () => {
+    assert(indexHtml.includes('기존 성격 분석'), '개선된 비교표 없음');
+    assert(!indexHtml.includes('사주팔자'), '기존 부정적 vs 표현 남아있음');
+});
+
+test('홈: animora-data.js 로드', () => {
+    assert(indexHtml.includes('animora-data.js'), 'animora-data.js 스크립트 없음');
+});
+
+test('홈: homepage-analysis.js 로드', () => {
+    assert(indexHtml.includes('homepage-analysis.js'), 'homepage-analysis.js 스크립트 없음');
+});
+
+const animoraDataJs = readFile('animora-data.js');
+test('animora-data.js: 12개 나라 데이터', () => {
+    assert(animoraDataJs.includes('ANIMORA_COUNTRIES'), '나라 데이터 없음');
+    assert(animoraDataJs.includes('소 나라'), '12번째 나라 없음');
+});
+
+test('animora-data.js: 30개 동물 데이터', () => {
+    assert(animoraDataJs.includes('ANIMORA_ANIMALS'), '동물 데이터 없음');
+    assert(animoraDataJs.includes('암돼지'), '30번째 동물 없음');
+});
+
+test('animora-data.js: 분석 생성 함수', () => {
+    assert(animoraDataJs.includes('generatePersonalAnalysisHTML'), '분석 생성 함수 없음');
+});
+
+const homepageJs = readFile('homepage-analysis.js');
+test('homepage-analysis.js: 양력→음력 변환 흐름', () => {
+    assert(homepageJs.includes('solarToLunar'), '양력→음력 변환 없음');
+    assert(homepageJs.includes('generatePersonalAnalysisHTML'), '분석 결과 생성 없음');
+});
+
+test('homepage-analysis.js: SVG 아이콘 초기화', () => {
+    assert(homepageJs.includes('initAnimalIcons'), 'SVG 아이콘 초기화 없음');
+});
+
+const animalIconsJs = readFile('animal-icons.js');
+test('animal-icons.js: 12종 동물 아이콘', () => {
+    assert(animalIconsJs.includes('ANIMORA_ICONS'), 'ANIMORA_ICONS 없음');
+    const iconKeys = ['tiger', 'rabbit', 'dragon', 'snake', 'horse', 'sheep', 'monkey', 'rooster', 'dog', 'pig', 'rat', 'ox'];
+    iconKeys.forEach(key => {
+        assert(animalIconsJs.includes(key + ':'), key + ' 아이콘 없음');
+    });
+});
+
+test('animal-icons.js: SVG 라인아트 스타일', () => {
+    assert(animalIconsJs.includes('fill="none"'), 'fill=none 스타일 없음');
+    assert(animalIconsJs.includes('stroke="currentColor"'), 'stroke=currentColor 없음');
+});
+
+test('index.html: SVG 아이콘 data-icon 속성', () => {
+    assert(indexHtml.includes('data-icon="tiger"'), '호랑이 아이콘 참조 없음');
+    assert(indexHtml.includes('data-icon="ox"'), '소 아이콘 참조 없음');
+    assert(indexHtml.includes('animal-icons.js'), 'animal-icons.js 스크립트 없음');
 });
 
 // ========== 결과 출력 ==========

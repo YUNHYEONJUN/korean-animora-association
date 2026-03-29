@@ -44,12 +44,9 @@
             </div>
             <ul class="nav-menu">
                 <li><a href="index.html">홈</a></li>
-                <li><a href="#about">협회소개</a></li>
-                <li><a href="#animora">아니모라란?</a></li>
-                <li><a href="#president">협회장 소개</a></li>
-                <li><a href="#converter">생일 변환</a></li>
-                <li><a href="analysis.html">성격분석·궁합</a></li>
-                <li><a href="education.html">교육과정</a></li>
+                <li><a href="#animora">아니모라</a></li>
+                <li><a href="analysis.html">분석하기</a></li>
+                <li><a href="education.html">교육</a></li>
                 <li><a href="#contact">문의</a></li>
             </ul>
             <div class="hamburger" aria-label="메뉴" role="button" tabindex="0">
@@ -60,47 +57,44 @@
         </div>
     </nav>
 
-    <!-- Hero Section -->
+    <!-- Hero + Analyzer Section -->
     <section id="main-content" class="hero">
         <div class="hero-overlay"></div>
         <div class="container hero-content">
             <h2 class="hero-title">당신의 내면에 숨겨진 동물을 만나보세요</h2>
             <p class="hero-subtitle">음력 생일로 풀어보는 360가지 인생 유형</p>
-            <p class="hero-description">아니모라(ANIMORA)는 음력 월·일만으로 당신의 본성과 세상과의 관계를 해석하는 신개념 Life Indicator입니다</p>
-            <a href="#animora" class="hero-btn">자세히 알아보기</a>
-        </div>
-    </section>
 
-    <!-- About Section -->
-    <section id="about" class="section about-section">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-badge">ABOUT US</span>
-                <h2 class="section-title">한국아니모라협회</h2>
-                <p class="section-subtitle">당신의 내면을 이해하는 가장 혁신적인 방법</p>
-            </div>
-            
-            <div class="about-content">
-                <div class="about-card">
-                    <div class="about-icon">01</div>
-                    <h3>협회 목적</h3>
-                    <p>아니모라를 통한 자기 이해와 인생 설계를 돕고, 전문 상담사 양성을 통해 심리·인생 해석의 새로운 패러다임을 제시합니다.</p>
+            <div class="hero-analyzer">
+                <h3 class="analyzer-title">양력 생일만 입력하면 바로 결과를 확인하세요</h3>
+                <div class="analyzer-form">
+                    <div class="analyzer-inputs">
+                        <div class="input-field">
+                            <label for="solar-year">년도</label>
+                            <input type="number" id="solar-year" placeholder="1990" min="1900" max="2100">
+                        </div>
+                        <div class="input-field">
+                            <label for="solar-month">월</label>
+                            <input type="number" id="solar-month" placeholder="1" min="1" max="12">
+                        </div>
+                        <div class="input-field">
+                            <label for="solar-day">일</label>
+                            <input type="number" id="solar-day" placeholder="15" min="1" max="31">
+                        </div>
+                    </div>
+                    <div class="analyzer-name-row">
+                        <div class="input-field">
+                            <label for="analyzer-name">닉네임</label>
+                            <input type="text" id="analyzer-name" placeholder="예: 행복한사자">
+                        </div>
+                    </div>
+                    <button class="analyzer-btn" onclick="runHomeAnalysis()">무료로 내 아니모라 확인하기</button>
                 </div>
-                <div class="about-card">
-                    <div class="about-icon">02</div>
-                    <h3>핵심 가치</h3>
-                    <p>360가지 유형으로 개인의 본성과 성장 방향을 찾아주는 심리 & 인생 해석 서비스를 제공하며, 누구나 쉽게 접근할 수 있는 Life Indicator를 지향합니다.</p>
-                </div>
-                <div class="about-card">
-                    <div class="about-icon">03</div>
-                    <h3>주요 활동</h3>
-                    <p>아니모라 상담사 교육 및 자격 인증, 온·오프라인 세미나 및 워크숍 개최, AI 아니모라 기술 개발 및 서비스 확대를 통해 사회에 기여합니다.</p>
-                </div>
+                <div id="home-result" class="home-result" style="display:none;"></div>
             </div>
         </div>
     </section>
 
-    <!-- Animora Explanation Section -->
+    <!-- Animora Brief Section -->
     <section id="animora" class="section animora-section">
         <div class="container">
             <div class="section-header">
@@ -111,10 +105,9 @@
 
             <div class="animora-intro">
                 <div class="animora-intro-text">
-                    <h3>영혼의 언어로 풀어낸 성격 코드</h3>
                     <p>아니모라는 라틴어 <strong>Anima(영혼, 생명)</strong>과 <strong>Ora(말하다, 입)</strong>의 합성어로, <strong>"내면의 본성이 말하는 인생"</strong>을 의미합니다.</p>
                     <p>명리학의 사주 중 <strong>월주(30%)</strong>와 <strong>일주(40%)</strong>만으로 구성하여, 인간의 본성과 세상과의 관계를 편리하고 쉽게 풀어낸 신개념 'LIFE INDICATOR'입니다.</p>
-                    
+
                     <div class="animora-formula">
                         <div class="formula-item">
                             <span class="formula-label">월주 (30%)</span>
@@ -186,366 +179,265 @@
                 <p class="calc-description">에니어그램 9가지, 별자리 12가지, MBTI 16가지보다 더 자세한 분석</p>
             </div>
 
-            <!-- How to Interpret -->
-            <div class="interpret-section">
-                <h3>아니모라 해석 방법</h3>
-                <div class="interpret-methods">
-                    <div class="method-card">
-                        <div class="method-number">01</div>
-                        <h4>성장 배경 해석</h4>
-                        <p><strong>월주(나라)</strong>를 자신의 성장 배경과 교육 환경으로 해석합니다. 부모나 형제, 주변 사람들로 인격 형성에 영향을 받은 습성을 의미합니다.</p>
-                        <div class="example-box">
-                            <strong>예시:</strong> 음력 8월 9일생<br>
-                            → 닭나라(8월)에서 들개(9일)로 성장<br>
-                            → 30%의 닭 습성 + 40%의 들개 본성
-                        </div>
-                    </div>
-                    <div class="method-card">
-                        <div class="method-number">02</div>
-                        <h4>대치 관계 해석</h4>
-                        <p><strong>월주</strong>를 자신과 대치한 동물로 해석하여, 본성 동물과의 상호 조화, 천적 관계, 무관심 등 야생에서의 현상으로 분석합니다.</p>
-                        <div class="example-box">
-                            <strong>예시:</strong> 닭들과 살고 있는 들개<br>
-                            → 먹잇감이 펼쳐진 곳에서 사는 늑대<br>
-                            → 풍족한 환경, 편한 먹이 활동
-                        </div>
-                    </div>
-                </div>
+            <div class="section-cta">
+                <a href="#main-content" class="cta-btn" onclick="document.getElementById('solar-year').focus(); return false;">무료로 내 아니모라 확인하기</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sample Result Preview -->
+    <section class="section sample-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">SAMPLE</span>
+                <h2 class="section-title">이런 결과를 받을 수 있어요</h2>
+                <p class="section-subtitle">음력 8월 19일생 예시 분석</p>
             </div>
 
-            <!-- Comparison Table -->
-            <div class="comparison-section">
-                <h3>아니모라 vs 사주팔자</h3>
-                <div class="comparison-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>구분</th>
-                                <th>사주팔자</th>
-                                <th>아니모라 AI</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>분석방식</strong></td>
-                                <td>사주명리 기반 오행 통계 해석</td>
-                                <td>세계관 기반 '동물+나라' 조합 구조해석</td>
-                            </tr>
-                            <tr>
-                                <td><strong>표현방식</strong></td>
-                                <td>건조한 이론 중심 서술</td>
-                                <td>은유적, 감각적, 대화형 언어 사용</td>
-                            </tr>
-                            <tr>
-                                <td><strong>결과적용성</strong></td>
-                                <td>'해석은 알겠는데 그래서 뭘 하라는 거지?'</td>
-                                <td>'그래서 난 지금 이렇게 살아야겠구나'라는 흐름 제공</td>
-                            </tr>
-                            <tr>
-                                <td><strong>감정적터치</strong></td>
-                                <td>없음 또는 최소화</td>
-                                <td>위로+통찰+조언이 한 흐름 안에 통합됨</td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <div class="sample-result-card">
+                <div class="sample-profile">
+                    <div class="sample-badge-group">
+                        <span class="sample-badge country-badge">🐓 닭 나라</span>
+                        <span class="sample-badge animal-badge">🐺 늑대</span>
+                    </div>
+                    <p class="sample-type-label">음력 8월 19일생의 아니모라</p>
+                </div>
+
+                <div class="sample-sections">
+                    <div class="sample-item">
+                        <h4>자라난 환경</h4>
+                        <p>닭 나라에서 자란 당신은 성실하고 정확한 환경에서 성장했습니다. 근면성실, 완벽주의, 정확성, 책임감이 특징입니다.</p>
+                    </div>
+                    <div class="sample-item">
+                        <h4>내면의 본성</h4>
+                        <p>늑대는 강한 리더십과 깊은 충성심을 겸비했습니다. 무리를 이끌며 의리를 중시하고, 협력 속에서 힘을 발휘합니다.</p>
+                    </div>
+                    <div class="sample-item">
+                        <h4>종합 해석</h4>
+                        <p>닭 나라의 성실함과 늑대의 리더십이 조화를 이루어, 조직에서 신뢰받는 리더로 성장할 수 있는 독특한 조합입니다.</p>
+                    </div>
+                </div>
+
+                <div class="sample-cta">
+                    <p>위 예시처럼 상세한 분석을 받아보세요</p>
+                    <a href="#main-content" class="cta-btn" onclick="document.getElementById('solar-year').focus(); return false;">무료로 내 아니모라 확인하기</a>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- President Section -->
-    <section id="president" class="section president-section">
+    <!-- Comparison Section (reframed as complementary) -->
+    <section class="section comparison-section">
         <div class="container">
             <div class="section-header">
-                <span class="section-badge">PRESIDENT</span>
-                <h2 class="section-title">협회장 소개</h2>
+                <span class="section-badge">COMPARISON</span>
+                <h2 class="section-title">아니모라는 어떻게 다를까?</h2>
+                <p class="section-subtitle">기존 성격 분석 도구와 아니모라의 차이</p>
             </div>
 
-            <div class="president-content">
-                <div class="president-photo">
-                    <img src="president-photo.jpg" alt="임선민 회장" class="president-image" loading="lazy">
-                </div>
-                
-                <div class="president-info">
-                    <h3 class="president-name">임선민 회장</h3>
-                    <p class="president-title">퍼스널컬러·이미지 컨설턴트 & CS 전문가</p>
-                    
-                    <div class="president-details">
-                        <div class="detail-item">
-                            <div class="detail-content">
-                                <h4>학력</h4>
-                                <p>홍익대학교 미술대학(한화과) 졸업<br>미술 전공자로서의 탁월한 색채 감각 보유</p>
-                            </div>
-                        </div>
-
-                        <div class="detail-item">
-                            <div class="detail-content">
-                                <h4>전문 자격 보유</h4>
-                                <p>CS 컨설턴트 및 서비스 강사 1급<br>퍼스널컬러 & 이미지 컨설턴트<br>MBTI 강사 및 갈등 중재 관리사</p>
-                            </div>
-                        </div>
-
-                        <div class="detail-item">
-                            <div class="detail-content">
-                                <h4>출판 컨설팅 전문가</h4>
-                                <p>멀티미디어(사진)와 퍼스널컬러를 접목한 독특한 출판 컨설팅 전문<br>명리학(사주)과 MBTI를 연계한 심층 컨설팅 진행</p>
-                            </div>
-                        </div>
-
-                        <div class="detail-item">
-                            <div class="detail-content">
-                                <h4>Total Solution Provider</h4>
-                                <p>내면(심리/사주)과 외면(이미지)을 아우르는 토탈 솔루션 제공<br>다양한 분야를 통합한 맞춤형 인생 컨설팅 서비스</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <blockquote class="president-quote">
-                        "미술 전공자의 섬세한 색채 감각과 명리학적 통찰을 결합하여,<br>
-                        다각도로 이미지 변화를 넘어 내면의 변화까지 제공합니다."
-                    </blockquote>
-
-                    <div class="expertise-tags">
-                        <span class="tag">퍼스널컬러</span>
-                        <span class="tag">이미지 메이킹</span>
-                        <span class="tag">CS 컨설팅</span>
-                        <span class="tag">명리학/심리</span>
-                        <span class="tag">MBTI</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Birthday Converter Section -->
-    <section id="converter" class="section converter-section">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-badge">BIRTHDAY CONVERTER</span>
-                <h2 class="section-title">양력 → 음력 변환기</h2>
-                <p class="section-subtitle">양력 생일을 입력하시면 음력 생일로 변환해드립니다</p>
-            </div>
-
-            <div class="converter-container">
-                <div class="converter-card">
-                    <div class="converter-input-section">
-                        <h3>양력 생일 입력</h3>
-                        <div class="date-input-group">
-                            <div class="input-field">
-                                <label for="solar-year">년도</label>
-                                <input type="number" id="solar-year" placeholder="2025" min="1900" max="2100">
-                            </div>
-                            <div class="input-field">
-                                <label for="solar-month">월</label>
-                                <input type="number" id="solar-month" placeholder="1" min="1" max="12">
-                            </div>
-                            <div class="input-field">
-                                <label for="solar-day">일</label>
-                                <input type="number" id="solar-day" placeholder="15" min="1" max="31">
-                            </div>
-                        </div>
-                        <button class="convert-btn" onclick="convertDate()">변환하기</button>
-                    </div>
-
-                    <div class="converter-arrow">
-                        <span>→</span>
-                    </div>
-
-                    <div class="converter-result-section">
-                        <h3>음력 생일</h3>
-                        <div id="lunar-result" class="lunar-result">
-                            <p class="result-placeholder">변환 결과가 여기에 표시됩니다</p>
-                        </div>
-                        <div id="animora-info" class="animora-info" style="display: none;">
-                            <h4>당신의 아니모라</h4>
-                            <div class="animora-result">
-                                <div class="animora-item">
-                                    <span class="animora-label">나라 (환경)</span>
-                                    <span id="animora-country" class="animora-value">-</span>
-                                </div>
-                                <div class="animora-item">
-                                    <span class="animora-label">동물 (본성)</span>
-                                    <span id="animora-animal" class="animora-value">-</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="converter-notice">
-                    <h4>유의사항</h4>
-                    <ul>
-                        <li>1900년~2100년 사이의 날짜를 정확하게 변환합니다.</li>
-                        <li>음력 변환은 전문 알고리즘을 사용하여 정확한 음력 날짜를 제공합니다.</li>
-                        <li>윤달인 경우 (윤달) 표시가 추가로 나타납니다.</li>
-                        <li>변환 후 '아니모라 AI로 상세 해석 받기' 버튼을 클릭하시면 ChatGPT 기반 아니모라 AI가 음력 생일을 분석해드립니다.</li>
-                        <li>추가 상담이 필요하시면 무료 상담을 신청해주세요.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 360 Types Section -->
-    <section id="types" class="section types-section">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-badge">360 TYPES</span>
-                <h2 class="section-title">360가지 인생 유형</h2>
-                <p class="section-subtitle">12개 나라 × 30개 동물로 만들어지는 당신만의 이야기</p>
-            </div>
-
-            <div class="animal-table-wrapper">
-                <h3>아니모라 동물표</h3>
-                <table class="animal-table">
+            <div class="comparison-table">
+                <table>
                     <thead>
                         <tr>
-                            <th>일주</th>
-                            <th>동물</th>
-                            <th>상 (11~20일)</th>
-                            <th>중 (1~10일)</th>
-                            <th>하 (21~30일)</th>
+                            <th>구분</th>
+                            <th>기존 성격 분석</th>
+                            <th>아니모라 AI</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>1</td>
-                            <td>호랑이</td>
-                            <td>11일 호랑이</td>
-                            <td>1일 호랑이</td>
-                            <td>21일 고양이</td>
+                            <td><strong>분석 방식</strong></td>
+                            <td>사주명리 / 설문 기반 통계 해석</td>
+                            <td>세계관 기반 '동물+나라' 조합으로 직관적 해석</td>
                         </tr>
                         <tr>
-                            <td>2</td>
-                            <td>토끼</td>
-                            <td>12일 오소리</td>
-                            <td>2일 야생토끼</td>
-                            <td>22일 집토끼</td>
+                            <td><strong>표현 방식</strong></td>
+                            <td>이론 중심의 딱딱한 서술</td>
+                            <td>은유적이고 감각적인 대화형 언어</td>
                         </tr>
                         <tr>
-                            <td>3</td>
-                            <td>용</td>
-                            <td>13일 용</td>
-                            <td>3일 이무기</td>
-                            <td>23일 도롱뇽</td>
+                            <td><strong>실생활 적용</strong></td>
+                            <td>해석은 알겠지만 실천이 막막</td>
+                            <td>"지금 이렇게 살아야겠다"는 구체적 방향 제시</td>
                         </tr>
                         <tr>
-                            <td>4</td>
-                            <td>뱀</td>
-                            <td>14일 구렁이</td>
-                            <td>4일 아나콘다</td>
-                            <td>24일 꽃뱀</td>
+                            <td><strong>감정적 연결</strong></td>
+                            <td>분석 결과만 전달</td>
+                            <td>위로 + 통찰 + 조언이 하나의 흐름으로 통합</td>
                         </tr>
                         <tr>
-                            <td>5</td>
-                            <td>말</td>
-                            <td>15일 경주마</td>
-                            <td>5일 야생마</td>
-                            <td>25일 명품마</td>
-                        </tr>
-                        <tr>
-                            <td>6</td>
-                            <td>양</td>
-                            <td>16일 산양</td>
-                            <td>6일 양</td>
-                            <td>26일 염소</td>
-                        </tr>
-                        <tr>
-                            <td>7</td>
-                            <td>원숭이</td>
-                            <td>17일 고릴라</td>
-                            <td>7일 오랑우탄</td>
-                            <td>27일 침팬지</td>
-                        </tr>
-                        <tr>
-                            <td>8</td>
-                            <td>닭</td>
-                            <td>18일 수탉</td>
-                            <td>8일 장미계</td>
-                            <td>28일 암탉</td>
-                        </tr>
-                        <tr>
-                            <td>9</td>
-                            <td>개</td>
-                            <td>19일 늑대</td>
-                            <td>9일 들개</td>
-                            <td>29일 강아지</td>
-                        </tr>
-                        <tr>
-                            <td>10</td>
-                            <td>돼지</td>
-                            <td>20일 수돼지</td>
-                            <td>10일 멧돼지</td>
-                            <td>30일 암돼지</td>
+                            <td><strong>유형 세분화</strong></td>
+                            <td>MBTI 16가지 / 별자리 12가지</td>
+                            <td>12 나라 × 30 동물 = 360가지 유형</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <div class="month-countries">
-                <h3>12개월 나라</h3>
-                <div class="countries-grid">
-                    <div class="country-card">
+            <div class="section-cta">
+                <a href="#main-content" class="cta-btn" onclick="document.getElementById('solar-year').focus(); return false;">무료로 내 아니모라 확인하기</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 12 Countries Compact Grid -->
+    <section id="countries" class="section countries-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">12 COUNTRIES</span>
+                <h2 class="section-title">12개월 나라</h2>
+                <p class="section-subtitle">클릭하면 자세한 설명을 볼 수 있어요</p>
+            </div>
+
+            <div class="countries-compact-grid">
+                <div class="country-compact-card" onclick="toggleCountry(this)">
+                    <div class="country-compact-header">
+                        <span class="country-icon" data-icon="tiger"></span>
                         <span class="country-month">1월</span>
                         <h4>호랑이 나라</h4>
-                        <p>#리더십 #자존감 #경쟁</p>
+                        <span class="country-toggle">+</span>
                     </div>
-                    <div class="country-card">
-                        <span class="country-month">2월</span>
-                        <h4>토끼 나라</h4>
-                        <p>#배려 #조용함 #감성</p>
-                    </div>
-                    <div class="country-card">
-                        <span class="country-month">3월</span>
-                        <h4>용 나라</h4>
-                        <p>#상상력 #창의성 #변화</p>
-                    </div>
-                    <div class="country-card">
-                        <span class="country-month">4월</span>
-                        <h4>뱀 나라</h4>
-                        <p>#직관 #신비 #집중력</p>
-                    </div>
-                    <div class="country-card">
-                        <span class="country-month">5월</span>
-                        <h4>말 나라</h4>
-                        <p>#자유 #열정 #활동성</p>
-                    </div>
-                    <div class="country-card">
-                        <span class="country-month">6월</span>
-                        <h4>양 나라</h4>
-                        <p>#전략 #실리주의 #은밀함</p>
-                    </div>
-                    <div class="country-card">
-                        <span class="country-month">7월</span>
-                        <h4>원숭이 나라</h4>
-                        <p>#재주 #적응력 #재치</p>
-                    </div>
-                    <div class="country-card">
-                        <span class="country-month">8월</span>
-                        <h4>닭 나라</h4>
-                        <p>#자존심 #책임감 #명확함</p>
-                    </div>
-                    <div class="country-card">
-                        <span class="country-month">9월</span>
-                        <h4>개 나라</h4>
-                        <p>#충성 #끈기 #조직성</p>
-                    </div>
-                    <div class="country-card">
-                        <span class="country-month">10월</span>
-                        <h4>돼지 나라</h4>
-                        <p>#풍요 #베품 #순수함</p>
-                    </div>
-                    <div class="country-card">
-                        <span class="country-month">11월</span>
-                        <h4>쥐 나라</h4>
-                        <p>#적응력 #평등 #가족애</p>
-                    </div>
-                    <div class="country-card">
-                        <span class="country-month">12월</span>
-                        <h4>소 나라</h4>
-                        <p>#고집 #안정 #뚝심</p>
+                    <div class="country-compact-body">
+                        <p class="country-keywords">#리더십 #자존감 #경쟁</p>
+                        <p>강인하고 리더십 있는 환경. 강한 의지력, 용맹함과 결단력이 특징입니다.</p>
                     </div>
                 </div>
+                <div class="country-compact-card" onclick="toggleCountry(this)">
+                    <div class="country-compact-header">
+                        <span class="country-icon" data-icon="rabbit"></span>
+                        <span class="country-month">2월</span>
+                        <h4>토끼 나라</h4>
+                        <span class="country-toggle">+</span>
+                    </div>
+                    <div class="country-compact-body">
+                        <p class="country-keywords">#배려 #조용함 #감성</p>
+                        <p>온화하고 섬세한 환경. 친절하고 배려심이 많으며, 평화를 추구합니다.</p>
+                    </div>
+                </div>
+                <div class="country-compact-card" onclick="toggleCountry(this)">
+                    <div class="country-compact-header">
+                        <span class="country-icon" data-icon="dragon"></span>
+                        <span class="country-month">3월</span>
+                        <h4>용 나라</h4>
+                        <span class="country-toggle">+</span>
+                    </div>
+                    <div class="country-compact-body">
+                        <p class="country-keywords">#상상력 #창의성 #변화</p>
+                        <p>카리스마 넘치고 야망이 큰 환경. 큰 꿈과 비전, 자신감이 특징입니다.</p>
+                    </div>
+                </div>
+                <div class="country-compact-card" onclick="toggleCountry(this)">
+                    <div class="country-compact-header">
+                        <span class="country-icon" data-icon="snake"></span>
+                        <span class="country-month">4월</span>
+                        <h4>뱀 나라</h4>
+                        <span class="country-toggle">+</span>
+                    </div>
+                    <div class="country-compact-body">
+                        <p class="country-keywords">#직관 #신비 #집중력</p>
+                        <p>지혜롭고 신중한 환경. 깊은 통찰력, 전략적 사고가 특징입니다.</p>
+                    </div>
+                </div>
+                <div class="country-compact-card" onclick="toggleCountry(this)">
+                    <div class="country-compact-header">
+                        <span class="country-icon" data-icon="horse"></span>
+                        <span class="country-month">5월</span>
+                        <h4>말 나라</h4>
+                        <span class="country-toggle">+</span>
+                    </div>
+                    <div class="country-compact-body">
+                        <p class="country-keywords">#자유 #열정 #활동성</p>
+                        <p>열정적이고 자유로운 환경. 모험심과 낙관적 성격이 특징입니다.</p>
+                    </div>
+                </div>
+                <div class="country-compact-card" onclick="toggleCountry(this)">
+                    <div class="country-compact-header">
+                        <span class="country-icon" data-icon="sheep"></span>
+                        <span class="country-month">6월</span>
+                        <h4>양 나라</h4>
+                        <span class="country-toggle">+</span>
+                    </div>
+                    <div class="country-compact-body">
+                        <p class="country-keywords">#평화 #예술 #공감</p>
+                        <p>평화롭고 조화로운 환경. 예술적 감각과 공감 능력이 특징입니다.</p>
+                    </div>
+                </div>
+                <div class="country-compact-card" onclick="toggleCountry(this)">
+                    <div class="country-compact-header">
+                        <span class="country-icon" data-icon="monkey"></span>
+                        <span class="country-month">7월</span>
+                        <h4>원숭이 나라</h4>
+                        <span class="country-toggle">+</span>
+                    </div>
+                    <div class="country-compact-body">
+                        <p class="country-keywords">#재주 #적응력 #재치</p>
+                        <p>영리하고 재치 있는 환경. 높은 지능과 유머 감각이 특징입니다.</p>
+                    </div>
+                </div>
+                <div class="country-compact-card" onclick="toggleCountry(this)">
+                    <div class="country-compact-header">
+                        <span class="country-icon" data-icon="rooster"></span>
+                        <span class="country-month">8월</span>
+                        <h4>닭 나라</h4>
+                        <span class="country-toggle">+</span>
+                    </div>
+                    <div class="country-compact-body">
+                        <p class="country-keywords">#자존심 #책임감 #명확함</p>
+                        <p>성실하고 정확한 환경. 근면성실과 완벽주의가 특징입니다.</p>
+                    </div>
+                </div>
+                <div class="country-compact-card" onclick="toggleCountry(this)">
+                    <div class="country-compact-header">
+                        <span class="country-icon" data-icon="dog"></span>
+                        <span class="country-month">9월</span>
+                        <h4>개 나라</h4>
+                        <span class="country-toggle">+</span>
+                    </div>
+                    <div class="country-compact-body">
+                        <p class="country-keywords">#충성 #끈기 #조직성</p>
+                        <p>충성스럽고 의리 있는 환경. 보호본능과 정직함이 특징입니다.</p>
+                    </div>
+                </div>
+                <div class="country-compact-card" onclick="toggleCountry(this)">
+                    <div class="country-compact-header">
+                        <span class="country-icon" data-icon="pig"></span>
+                        <span class="country-month">10월</span>
+                        <h4>돼지 나라</h4>
+                        <span class="country-toggle">+</span>
+                    </div>
+                    <div class="country-compact-body">
+                        <p class="country-keywords">#풍요 #베품 #순수함</p>
+                        <p>관대하고 풍요로운 환경. 낙천적이고 사교적인 성격이 특징입니다.</p>
+                    </div>
+                </div>
+                <div class="country-compact-card" onclick="toggleCountry(this)">
+                    <div class="country-compact-header">
+                        <span class="country-icon" data-icon="rat"></span>
+                        <span class="country-month">11월</span>
+                        <h4>쥐 나라</h4>
+                        <span class="country-toggle">+</span>
+                    </div>
+                    <div class="country-compact-body">
+                        <p class="country-keywords">#적응력 #평등 #가족애</p>
+                        <p>민첩하고 적응력 있는 환경. 영리함과 기회 포착이 특징입니다.</p>
+                    </div>
+                </div>
+                <div class="country-compact-card" onclick="toggleCountry(this)">
+                    <div class="country-compact-header">
+                        <span class="country-icon" data-icon="ox"></span>
+                        <span class="country-month">12월</span>
+                        <h4>소 나라</h4>
+                        <span class="country-toggle">+</span>
+                    </div>
+                    <div class="country-compact-body">
+                        <p class="country-keywords">#고집 #안정 #뚝심</p>
+                        <p>인내심 있고 성실한 환경. 끈기와 안정성이 특징입니다.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-cta">
+                <a href="#main-content" class="cta-btn" onclick="document.getElementById('solar-year').focus(); return false;">무료로 내 아니모라 확인하기</a>
             </div>
         </div>
     </section>
@@ -579,8 +471,11 @@
                     <h4>무료 상담 안내</h4>
                     <p>음력 생일과 함께 고민을 남겨주시면, 아니모라 AI 내용과 함께 1회 무료 상담을 제공해드립니다.</p>
                     <p class="notice-small">* 무료 상담은 댓글이나 카톡 신청 순서대로 진행되며, 일일 2회 제한으로 즉시 진행이 어려울 수 있습니다.</p>
-                    <p class="notice-small">* 음력 생일을 모르시는 분들은 음력 변환 사이트를 이용하시기 바랍니다.</p>
                 </div>
+            </div>
+
+            <div class="section-cta">
+                <a href="analysis.html" class="cta-btn cta-btn-secondary">커플 궁합 / 다중 관계 분석하러 가기</a>
             </div>
         </div>
     </section>
@@ -592,25 +487,18 @@
                 <div class="footer-info">
                     <h3>한국아니모라협회</h3>
                     <p>Korean Animora Association</p>
-                    <p class="copyright">© 2025-2026 아니모라 Animora. All rights reserved.</p>
+                    <p class="copyright">&copy; 2025-2026 아니모라 Animora. All rights reserved.</p>
                     <p class="copyright-notice">이 자료의 저작권은 [아니모라 Animora]에게 있으며,<br>허가 없이 복제, 배포, 전송, 게시 등의 행위를 금지합니다.</p>
                 </div>
-                
+
                 <div class="footer-links">
                     <div class="footer-column">
-                        <h4>협회 정보</h4>
-                        <ul>
-                            <li><a href="#about">협회 소개</a></li>
-                            <li><a href="#president">협회장 소개</a></li>
-                            <li><a href="#contact">문의하기</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-column">
-                        <h4>아니모라</h4>
+                        <h4>바로가기</h4>
                         <ul>
                             <li><a href="#animora">아니모라란?</a></li>
-                            <li><a href="#types">360가지 유형</a></li>
-                            <li><a href="#contact">무료 상담</a></li>
+                            <li><a href="analysis.html">분석하기</a></li>
+                            <li><a href="education.html">교육과정</a></li>
+                            <li><a href="#contact">문의하기</a></li>
                         </ul>
                     </div>
                 </div>
@@ -620,7 +508,9 @@
 
     <button id="scroll-top" class="scroll-top-btn" aria-label="맨 위로 이동">↑</button>
     <script src="lunar-converter.js"></script>
+    <script src="animora-data.js"></script>
+    <script src="animal-icons.js"></script>
     <script src="script.js"></script>
-    <script src="converter.js"></script>
+    <script src="homepage-analysis.js"></script>
 </body>
 </html>
