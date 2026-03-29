@@ -29,7 +29,7 @@ const AnimoraABTest = (() => {
     function getVariant(experimentId) {
         const experiments = (typeof ANIMORA_CONFIG !== 'undefined' && ANIMORA_CONFIG.experiments) || {};
         const experiment = experiments[experimentId];
-        if (!experiment) return null;
+        if (!experiment || !Array.isArray(experiment.variants) || experiment.variants.length === 0) return null;
 
         const assignments = getAssignments();
         if (assignments[experimentId]) {
@@ -40,12 +40,19 @@ const AnimoraABTest = (() => {
         }
 
         // 가중치 기반 무작위 배정
-        const weights = experiment.weight || experiment.variants.map(() => 1 / experiment.variants.length);
+        let weights = experiment.weight;
+        if (!Array.isArray(weights) || weights.length !== experiment.variants.length) {
+            weights = experiment.variants.map(() => 1 / experiment.variants.length);
+        }
+        // 가중치 합계 정규화
+        const weightSum = weights.reduce((a, b) => a + b, 0);
+        const normalizedWeights = weightSum > 0 ? weights.map(w => w / weightSum) : weights;
+
         const rand = Math.random();
         let cumulative = 0;
-        let selected = experiment.variants[0];
-        for (let i = 0; i < weights.length; i++) {
-            cumulative += weights[i];
+        let selected = experiment.variants[experiment.variants.length - 1]; // 기본값: 마지막 variant
+        for (let i = 0; i < normalizedWeights.length; i++) {
+            cumulative += normalizedWeights[i];
             if (rand < cumulative) {
                 selected = experiment.variants[i];
                 break;

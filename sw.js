@@ -35,7 +35,7 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
-// Activate: 오래된 캐시 삭제
+// Activate: 오래된 캐시 삭제 + 클라이언트 알림
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
@@ -44,6 +44,13 @@ self.addEventListener('activate', (event) => {
                     .filter((name) => name !== CACHE_NAME)
                     .map((name) => caches.delete(name))
             );
+        }).then(() => {
+            // 새 버전 활성화 시 클라이언트에 알림
+            self.clients.matchAll().then((clients) => {
+                clients.forEach((client) => {
+                    client.postMessage({ type: 'SW_UPDATED', version: CACHE_NAME });
+                });
+            });
         })
     );
     self.clients.claim();
@@ -57,7 +64,11 @@ self.addEventListener('fetch', (event) => {
     if (url.hostname.includes('workers.dev') || url.hostname.includes('openai.com')) {
         event.respondWith(
             fetch(event.request).catch(() => {
-                return new Response(JSON.stringify({ error: '오프라인 상태입니다' }), {
+                return new Response(JSON.stringify({
+                    error: '네트워크 연결을 확인해주세요.',
+                    offline: true
+                }), {
+                    status: 503,
                     headers: { 'Content-Type': 'application/json' }
                 });
             })
@@ -72,7 +83,7 @@ self.addEventListener('fetch', (event) => {
                 return cached || fetch(event.request).then((response) => {
                     if (response.ok) {
                         const clone = response.clone();
-                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {});
                     }
                     return response;
                 });
@@ -87,10 +98,18 @@ self.addEventListener('fetch', (event) => {
             const fetchPromise = fetch(event.request).then((response) => {
                 if (response.ok) {
                     const clone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {});
                 }
                 return response;
-            }).catch(() => cached);
+            }).catch(() => {
+                // 캐시에 있으면 반환, 없으면 오프라인 폴백
+                if (cached) return cached;
+                // HTML 페이지 요청의 경우 캐시된 index.html로 폴백
+                if (event.request.mode === 'navigate') {
+                    return caches.match('/korean-animora-association/index.html');
+                }
+                return new Response('오프라인 상태입니다.', { status: 503 });
+            });
 
             return cached || fetchPromise;
         })

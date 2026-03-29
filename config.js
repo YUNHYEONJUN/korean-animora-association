@@ -4,7 +4,7 @@
  */
 
 // 환경 감지: GitHub Pages = production, localhost = development
-const ANIMORA_ENV = location.hostname.includes('github.io') ? 'production' : 'development';
+const ANIMORA_ENV = (typeof location !== 'undefined' && location.hostname.endsWith('github.io')) ? 'production' : 'development';
 
 const ANIMORA_CONFIG = {
     env: ANIMORA_ENV,
@@ -13,10 +13,8 @@ const ANIMORA_CONFIG = {
     api: {
         // OpenAI API 설정 (✅ 연동 완료)
         openai: {
-            enabled: true, // API 사용 활성화
-            endpoint: 'https://api.openai.com/v1/chat/completions',
-            model: 'gpt-4',
-            // API 키는 서버 사이드에서 관리 (보안상 클라이언트에 노출 금지)
+            enabled: true, // API 사용 활성화 (백엔드 경유)
+            // API 키와 엔드포인트는 서버 사이드(Cloudflare Worker)에서 관리
         },
         
         // 백엔드 API 엔드포인트 (✅ 연동 완료)
@@ -25,9 +23,7 @@ const ANIMORA_CONFIG = {
             baseUrl: 'https://animora-api.yoonhj79.workers.dev/api', // Cloudflare Workers 백엔드
             endpoints: {
                 analysis: '/ai-analysis',
-                customQuestion: '/custom-question',
-                payment: '/payment',
-                history: '/history'
+                customQuestion: '/custom-question'
             }
         }
     },

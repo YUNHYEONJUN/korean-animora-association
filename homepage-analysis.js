@@ -3,12 +3,19 @@
  */
 
 function runHomeAnalysis() {
-    const year = AnimoraSanitizer.sanitizeNumber(document.getElementById('solar-year').value);
-    const month = AnimoraSanitizer.sanitizeNumber(document.getElementById('solar-month').value);
-    const day = AnimoraSanitizer.sanitizeNumber(document.getElementById('solar-day').value);
-    const rawName = document.getElementById('analyzer-name').value.trim();
-    const name = AnimoraSanitizer.escapeHTML(rawName) || '방문자';
+    const yearEl = document.getElementById('solar-year');
+    const monthEl = document.getElementById('solar-month');
+    const dayEl = document.getElementById('solar-day');
+    const nameEl = document.getElementById('analyzer-name');
     const resultDiv = document.getElementById('home-result');
+
+    if (!resultDiv) return;
+
+    const year = AnimoraSanitizer.sanitizeNumber(yearEl ? yearEl.value : '');
+    const month = AnimoraSanitizer.sanitizeNumber(monthEl ? monthEl.value : '');
+    const day = AnimoraSanitizer.sanitizeNumber(dayEl ? dayEl.value : '');
+    const rawName = nameEl ? nameEl.value.trim() : '';
+    const name = AnimoraSanitizer.escapeHTML(rawName) || '방문자';
 
     // 입력 검증
     if (!year || !month || !day) {
@@ -76,7 +83,7 @@ function runHomeAnalysis() {
         resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     } catch (error) {
-        resultDiv.innerHTML = '<p class="result-error">변환 중 오류가 발생했습니다: ' + AnimoraSanitizer.sanitizeError(error.message) + '</p>';
+        resultDiv.innerHTML = '<p class="result-error">변환 중 오류가 발생했습니다: ' + AnimoraSanitizer.sanitizeError(error.message || '알 수 없는 오류') + '</p>';
         resultDiv.style.display = 'block';
     }
 }
@@ -85,7 +92,7 @@ function runHomeAnalysis() {
 function toggleCountry(card) {
     card.classList.toggle('expanded');
     const toggle = card.querySelector('.country-toggle');
-    toggle.textContent = card.classList.contains('expanded') ? '−' : '+';
+    if (toggle) toggle.textContent = card.classList.contains('expanded') ? '−' : '+';
 }
 
 // SVG 아이콘 삽입

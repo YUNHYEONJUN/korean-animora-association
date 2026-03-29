@@ -149,7 +149,7 @@ test('.photo-placeholder 제거됨', () => {
 });
 
 test('hero fallback background-color 존재', () => {
-    assert(css.includes('background-color: #2c3e89'), 'hero fallback 색상 없음');
+    assert(css.includes('background-color: var(--primary-color)'), 'hero fallback 색상 없음');
 });
 
 test('중복 @media 768px 병합 확인', () => {

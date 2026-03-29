@@ -40,19 +40,21 @@ function switchAnalysisType(type) {
     document.querySelectorAll('.type-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    document.querySelector(`[data-type="${type}"]`).classList.add('active');
-    
+    const activeBtn = document.querySelector(`[data-type="${type}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+
     // 폼 전환
     document.querySelectorAll('.form-section').forEach(section => {
         section.classList.remove('active');
     });
-    document.getElementById(`${type}-form`).classList.add('active');
+    const activeForm = document.getElementById(`${type}-form`);
+    if (activeForm) activeForm.classList.add('active');
     
     // 전환된 폼의 드롭다운 채우기
     populateDaySelects();
     
     // 결과 숨기기
-    document.getElementById('result-section').style.display = 'none';
+    document.getElementById('result-section').classList.add('hidden');
 }
 
 // 폼 초기화
@@ -227,7 +229,12 @@ function handlePersonalSubmit(e) {
     
     const country = countries[month];
     const animal = animals[day];
-    
+
+    if (!country || !animal) {
+        alert('올바른 월/일을 선택해주세요.');
+        return;
+    }
+
     const analysisData = {
         type: 'personal',
         name: name,
@@ -328,9 +335,9 @@ function handleFamilySubmit(e) {
 function generatePersonalAnalysis(name, month, day) {
     const country = countries[month];
     const animal = animals[day];
-    const countryTrait = countryTraits[month];
-    const animalTrait = animalTraits[day] || { 
-        nature: animal.name, 
+    const countryTrait = countryTraits[month] || { characteristics: ['유연함'], challenges: '균형 유지가 필요합니다' };
+    const animalTrait = animalTraits[day] || {
+        nature: animal.name,
         desc: `${animal.emoji} ${animal.name}의 본성을 가진 당신은 독특한 매력을 가지고 있습니다.`,
         keywords: ['독특함', '개성', '매력']
     };
@@ -445,8 +452,8 @@ function generateCoupleAnalysis(person1, person2) {
                 <h3>⚠️ 주의할 점</h3>
                 <div class="analysis-content">
                     <ul class="analysis-list">
-                        <li>⚠ ${person1.name}님은 ${country1.name}의 특성상 ${countryTraits[person1.month].challenges.toLowerCase()}</li>
-                        <li>⚠ ${person2.name}님은 ${country2.name}의 특성상 ${countryTraits[person2.month].challenges.toLowerCase()}</li>
+                        <li>⚠ ${person1.name}님은 ${country1.name}의 특성상 ${(countryTraits[person1.month]?.challenges || '균형 유지가 필요합니다').toLowerCase()}</li>
+                        <li>⚠ ${person2.name}님은 ${country2.name}의 특성상 ${(countryTraits[person2.month]?.challenges || '균형 유지가 필요합니다').toLowerCase()}</li>
                         <li>⚠ 서로의 다른 점을 이해하고 대화로 풀어가는 것이 중요합니다</li>
                     </ul>
                 </div>
@@ -522,7 +529,7 @@ function generateFamilyAnalysis(members) {
                 <div class="analysis-content">
                     ${memberProfiles.map((m, i) => `
                         <p><strong>${m.name} (${m.relationLabel}, ${m.gender === 'male' ? '남성' : '여성'}):</strong> ${m.country.name}에서 자라 ${m.animal.name}의 본성을 가졌습니다. 
-                        ${countryTraits[m.month].characteristics[0]}하며, ${m.country.keyword}를 추구합니다.</p>
+                        ${(countryTraits[m.month]?.characteristics?.[0] || '유연함')}하며, ${m.country.keyword}를 추구합니다.</p>
                     `).join('')}
                 </div>
             </div>
@@ -543,7 +550,7 @@ function generateFamilyAnalysis(members) {
                 <div class="analysis-content">
                     <ul class="analysis-list">
                         ${memberProfiles.map(m => `
-                            <li>⚠ ${m.name} (${m.relationLabel}): ${countryTraits[m.month].challenges}</li>
+                            <li>⚠ ${m.name} (${m.relationLabel}): ${countryTraits[m.month]?.challenges || '균형 유지가 필요합니다'}</li>
                         `).join('')}
                     </ul>
                 </div>
@@ -565,28 +572,9 @@ function generateFamilyAnalysis(members) {
     `;
 }
 
-// 궁합 점수 계산 (임의)
+// 궁합 점수 계산 — animora-data.js의 함수 위임
 function calculateCompatibility(month1, day1, month2, day2) {
-    // 간단한 알고리즘: 월과 일의 차이를 기반으로 점수 계산
-    const monthDiff = Math.abs(month1 - month2);
-    const dayDiff = Math.abs(day1 - day2);
-    
-    let score = 85; // 기본 점수
-    
-    // 월 차이가 적을수록 좋음
-    score -= monthDiff * 2;
-    
-    // 일 차이 고려
-    score -= Math.floor(dayDiff / 5);
-    
-    // 같은 월이면 보너스
-    if (month1 === month2) score += 10;
-    
-    // 같은 일이면 보너스
-    if (day1 === day2) score += 5;
-    
-    // 점수 범위 제한
-    return Math.max(60, Math.min(100, score));
+    return calculateAnimoraCompatibility(month1, day1, month2, day2);
 }
 
 // 결과 표시
@@ -601,7 +589,7 @@ function displayResult(htmlContent, analysisData = null) {
         addPremiumButtons(resultContent, analysisData);
     }
     
-    resultSection.style.display = 'block';
+    resultSection.classList.remove('hidden');
     
     // 결과 섹션으로 스크롤
     resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -687,7 +675,11 @@ function saveAnalysisToHistory() {
             btn.disabled = true;
         }
     } catch (error) {
-        // 저장 실패 - 무시
+        const btn = document.querySelector('.save-btn');
+        if (btn) {
+            btn.textContent = '저장 실패';
+            btn.style.background = '#e74c3c';
+        }
     }
 }
 
@@ -704,6 +696,8 @@ function downloadAnalysisPDF() {
 
 // 공유하기
 function shareAnalysis() {
+    // 기존 모달 제거 (중복 방지)
+    closeShareModal();
     const shareOptions = `
         <div class="share-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">
             <div class="share-content" style="background: white; padding: 30px; border-radius: 20px; max-width: 400px;">
@@ -750,6 +744,13 @@ async function requestAIAnalysis() {
     btn.disabled = true;
     btn.style.opacity = '0.7';
 
+    // 60초 타임아웃
+    const loadingTimeout = setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        btn.style.opacity = '';
+    }, 60000);
+
     try {
         // API 활성화 확인
         if (!ANIMORA_CONFIG.api.openai.enabled) {
@@ -776,6 +777,7 @@ async function requestAIAnalysis() {
         `;
         resultContent.insertAdjacentHTML('beforeend', errorHTML);
     } finally {
+        clearTimeout(loadingTimeout);
         // 버튼 복구
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -795,7 +797,7 @@ function displayAIAnalysisResult(aiAnalysis) {
             </div>
             
             <div style="background: white; padding: 30px; border-radius: 15px; margin-top: 20px; white-space: pre-wrap; line-height: 1.8; color: #333;">
-                ${aiAnalysis}
+                ${AnimoraSanitizer.escapeHTML(aiAnalysis)}
             </div>
             
             <div style="text-align: center; margin-top: 30px; padding: 20px; background: rgba(212, 175, 55, 0.1); border-radius: 10px;">
@@ -815,6 +817,8 @@ function displayAIAnalysisResult(aiAnalysis) {
 
 // 맞춤형 질문 선택 모달
 function showCustomQuestions() {
+    // 기존 모달 제거 (중복 방지)
+    closeCustomQuestionModal();
     const analysisType = window.currentAnalysisData ? window.currentAnalysisData.type : 'personal';
     // 커플용 템플릿은 커플/가족 분석에서만 표시
     const coupleOnlyTemplates = ['conflict_resolution'];
@@ -982,8 +986,6 @@ async function askFreeFormQuestion() {
             context = `가족 구성원: ${memberDescriptions}`;
         }
         
-        const fullPrompt = `${context}\n\n질문: ${question}`;
-        
         // API 호출 (백엔드에서 처리)
         const answer = await animoraAPI.askCustomQuestion({
             questionType: 'free_form',
@@ -1013,11 +1015,11 @@ function displayFreeFormAnswer(question, answer) {
         <div class="result-card" style="margin-top: 40px; background: linear-gradient(135deg, #fff8e1 0%, #ffe9b3 100%); border: 3px solid #ff9800;">
             <div class="result-header">
                 <h2 style="color: #f57c00;">💬 직접 질문 답변</h2>
-                <p class="subtitle" style="font-weight: 600; color: #2c3e89;">Q: ${question}</p>
+                <p class="subtitle" style="font-weight: 600; color: #2c3e89;">Q: ${AnimoraSanitizer.escapeHTML(question)}</p>
             </div>
-            
+
             <div style="background: white; padding: 30px; border-radius: 15px; margin-top: 20px; white-space: pre-wrap; line-height: 1.8; color: #333;">
-                ${answer}
+                ${AnimoraSanitizer.escapeHTML(answer)}
             </div>
         </div>
     `;
@@ -1040,13 +1042,13 @@ function displayCustomAnswer(template, answer) {
             </div>
             
             <div style="background: white; padding: 30px; border-radius: 15px; margin-top: 20px; white-space: pre-wrap; line-height: 1.8; color: #333;">
-                ${answer}
+                ${AnimoraSanitizer.escapeHTML(answer)}
             </div>
         </div>
     `;
-    
+
     resultContent.insertAdjacentHTML('beforeend', answerHTML);
-    
+
     // 스크롤 이동
     resultContent.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }

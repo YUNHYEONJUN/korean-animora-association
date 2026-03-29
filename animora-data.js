@@ -162,15 +162,20 @@ function generatePersonalAnalysisHTML(name, month, day) {
         keywords: ['독특함', '개성', '매력']
     };
 
+    // XSS 방어: 사용자 입력인 name을 이스케이프
+    const safeName = (typeof AnimoraSanitizer !== 'undefined')
+        ? AnimoraSanitizer.escapeHTML(name)
+        : name.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+
     return `
         <div class="result-card">
             <div class="result-header">
                 <h2>개인 성격 분석 결과</h2>
-                <p class="subtitle">${name}님의 아니모라 해석</p>
+                <p class="subtitle">${safeName}님의 아니모라 해석</p>
             </div>
 
             <div class="profile-card">
-                <div class="profile-name">${name}</div>
+                <div class="profile-name">${safeName}</div>
                 <div class="profile-birth">음력 ${month}월 ${day}일생</div>
                 <div class="animora-type">
                     <h3>아니모라 유형</h3>
@@ -203,7 +208,7 @@ function generatePersonalAnalysisHTML(name, month, day) {
             <div class="analysis-section">
                 <h3>종합 해석</h3>
                 <div class="analysis-content">
-                    <p>${name}님은 <strong>${country.name}</strong>의 환경(30%)과 <strong>${animal.name}</strong>의 본성(40%)이 조화를 이루어
+                    <p>${safeName}님은 <strong>${country.name}</strong>의 환경(30%)과 <strong>${animal.name}</strong>의 본성(40%)이 조화를 이루어
                     독특한 성격을 형성했습니다. ${country.keyword}의 환경에서 자란 당신은 ${animalTrait.keywords[0]}와(과) ${animalTrait.keywords[1]}을(를)
                     바탕으로 자신만의 길을 개척해나갑니다.</p>
 

@@ -30,8 +30,8 @@ const lunarInfo = [
     0x0d520
 ];
 
-// 양력 기준일: 1900년 1월 31일 = 음력 1900년 1월 1일
-const baseDate = new Date(1900, 0, 31);
+// 양력 기준일: 1900년 1월 31일 = 음력 1900년 1월 1일 (UTC 기준으로 타임존 영향 제거)
+const baseDate = Date.UTC(1900, 0, 31);
 
 /**
  * 윤년 여부 확인
@@ -94,9 +94,9 @@ function solarToLunar(year, month, day) {
         };
     }
 
-    // 양력 날짜와 기준일 사이의 일수 계산
-    const solarDate = new Date(year, month - 1, day);
-    let offset = Math.floor((solarDate - baseDate) / 86400000);
+    // 양력 날짜와 기준일 사이의 일수 계산 (UTC 기준으로 타임존/DST 영향 제거)
+    const solarDate = Date.UTC(year, month - 1, day);
+    let offset = Math.round((solarDate - baseDate) / 86400000);
 
     let lunarYear, lunarMonth, lunarDay;
     let isLeapMonth = false;
@@ -108,8 +108,11 @@ function solarToLunar(year, month, day) {
     }
     
     if (offset < 0) {
-        offset += yearDays(lunarYear - 1);
-        lunarYear--;
+        offset += yearDays(--lunarYear);
+    }
+    // 범위 초과 안전장치
+    if (lunarYear < 1900 || lunarYear > 2100) {
+        return { year, month, day, isLeapMonth: false, error: '변환 범위를 초과했습니다.' };
     }
 
     // 음력 월 찾기
@@ -144,8 +147,15 @@ function solarToLunar(year, month, day) {
     }
     
     if (offset < 0) {
-        offset += monthDays(lunarYear, lunarMonth - 1);
-        lunarMonth--;
+        if (lunarMonth > 1) {
+            offset += monthDays(lunarYear, lunarMonth - 1);
+            lunarMonth--;
+        } else {
+            // 전년도 마지막 월로 보정
+            lunarYear--;
+            lunarMonth = 12;
+            offset += monthDays(lunarYear, 12);
+        }
     }
     
     lunarDay = offset + 1;

@@ -10,7 +10,7 @@ menuBackdrop.className = 'menu-backdrop';
 document.body.appendChild(menuBackdrop);
 
 function closeMenu() {
-    navMenu.classList.remove('active');
+    if (navMenu) navMenu.classList.remove('active');
     if (hamburger) {
         hamburger.classList.remove('active');
         hamburger.setAttribute('aria-expanded', 'false');
@@ -73,7 +73,9 @@ navLinks.forEach(link => {
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
+        const href = this.getAttribute('href');
+        if (!href || href === '#') return;
+        const target = document.querySelector(href);
         if (target) {
             const offsetTop = target.offsetTop - 70;
             window.scrollTo({
@@ -131,8 +133,10 @@ window.addEventListener('scroll', () => {
     // Parallax effect for hero section
     const hero = document.querySelector('.hero-content');
     if (hero) {
-        hero.style.transform = `translateY(${currentScroll * 0.5}px)`;
-        hero.style.opacity = 1 - currentScroll / 600;
+        const parallaxSpeed = 0.5;
+        const fadeDistance = 600; // px until fully faded
+        hero.style.transform = `translateY(${currentScroll * parallaxSpeed}px)`;
+        hero.style.opacity = Math.max(0, 1 - currentScroll / fadeDistance);
     }
 });
 

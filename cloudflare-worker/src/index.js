@@ -190,6 +190,53 @@ function getSpecialContent(key) {
   return entry ? (entry.content || '') : '';
 }
 
+// ── 보안 헬퍼 ───────────────────────────────────────────────────
+
+const MAX_BODY_SIZE = 50 * 1024; // 50KB
+const MAX_PROMPT_LENGTH = 5000;
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1분
+const RATE_LIMIT_MAX = 20; // 분당 최대 요청
+
+// 간이 인메모리 rate limiter (Worker 인스턴스별)
+const rateLimitMap = new Map();
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW) {
+    rateLimitMap.set(ip, { windowStart: now, count: 1 });
+    return true;
+  }
+  entry.count++;
+  if (entry.count > RATE_LIMIT_MAX) return false;
+  return true;
+}
+
+// 오래된 rate limit 엔트리 정리 (요청 시 lazy cleanup)
+function cleanupRateLimits() {
+  const now = Date.now();
+  if (rateLimitMap.size > 1000) {
+    for (const [ip, entry] of rateLimitMap) {
+      if (now - entry.windowStart > RATE_LIMIT_WINDOW * 2) {
+        rateLimitMap.delete(ip);
+      }
+    }
+  }
+}
+
+/**
+ * 프롬프트 인젝션 방지: 사용자 입력에서 위험한 지시문 제거
+ */
+function sanitizeUserInput(str) {
+  if (typeof str !== 'string') return '';
+  // 시스템 프롬프트 오버라이드 시도 차단
+  return str
+    .replace(/\b(ignore|disregard|forget)\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?)/gi, '[필터됨]')
+    .replace(/\b(you\s+are\s+now|act\s+as|pretend\s+to\s+be|new\s+instructions?)\b/gi, '[필터됨]')
+    .replace(/```[\s\S]*?```/g, '') // 코드 블록 제거
+    .slice(0, 200); // 사용자 이름/필드는 200자 제한
+}
+
 // ── CORS ─────────────────────────────────────────────────────────
 
 function corsHeaders(request, env) {
@@ -197,14 +244,16 @@ function corsHeaders(request, env) {
   const allowed = (env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim());
   // 개발 시 localhost 허용 (환경변수 ALLOW_LOCALHOST=true 설정 필요)
   const allowLocalhost = env.ALLOW_LOCALHOST === 'true';
+  const localhostPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
   const isAllowed = allowed.includes(origin) ||
-    (allowLocalhost && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')));
+    (allowLocalhost && localhostPattern.test(origin));
 
   return {
-    'Access-Control-Allow-Origin': isAllowed ? origin : allowed[0],
+    'Access-Control-Allow-Origin': isAllowed ? origin : '',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin',
   };
 }
 
@@ -215,9 +264,12 @@ function handleOptions(request, env) {
 // ── 프롬프트 생성 ────────────────────────────────────────────────
 
 function generatePersonalPrompt(data, questionType) {
-  const name = data.name || '고객';
+  const name = sanitizeUserInput(data.name) || '고객';
   const gender = data.gender === 'male' ? '남성' : '여성';
-  const { month, day, country = '', animal = '' } = data;
+  const month = Math.max(1, Math.min(12, Number(data.month) || 1));
+  const day = Math.max(1, Math.min(30, Number(data.day) || 1));
+  const country = sanitizeUserInput(data.country) || '알 수 없음';
+  const animal = sanitizeUserInput(data.animal) || '알 수 없음';
 
   const monthKnowledge = getMonthKnowledge(month);
   const comboKnowledge = getCombinationKnowledge(month, day);
@@ -256,7 +308,14 @@ function generatePersonalPrompt(data, questionType) {
 function generateCouplePrompt(data) {
   const p1 = data.person1 || {};
   const p2 = data.person2 || {};
-  const score = data.compatibilityScore || 0;
+  const score = Number(data.compatibilityScore) || 0;
+
+  const p1Name = sanitizeUserInput(p1.name) || '사람1';
+  const p2Name = sanitizeUserInput(p2.name) || '사람2';
+  const p1Country = sanitizeUserInput(p1.country);
+  const p2Country = sanitizeUserInput(p2.country);
+  const p1Animal = sanitizeUserInput(p1.animal);
+  const p2Animal = sanitizeUserInput(p2.animal);
 
   const p1mk = getMonthKnowledge(p1.month);
   const p2mk = getMonthKnowledge(p2.month);
@@ -265,22 +324,22 @@ function generateCouplePrompt(data) {
 
   let prompt = `[커플 궁합 분석 요청]
 
-👤 첫 번째 사람: ${p1.name} (${p1.gender})
+👤 첫 번째 사람: ${p1Name} (${p1.gender === 'male' ? '남성' : '여성'})
    - 음력 생일: ${p1.month}월 ${p1.day}일
-   - 나라: ${p1.country}
-   - 동물: ${p1.animal}
+   - 나라: ${p1Country}
+   - 동물: ${p1Animal}
 
-👤 두 번째 사람: ${p2.name} (${p2.gender})
+👤 두 번째 사람: ${p2Name} (${p2.gender === 'male' ? '남성' : '여성'})
    - 음력 생일: ${p2.month}월 ${p2.day}일
-   - 나라: ${p2.country}
-   - 동물: ${p2.animal}
+   - 나라: ${p2Country}
+   - 동물: ${p2Animal}
 
 💯 궁합 점수: ${score}점\n`;
 
-  if (p1mk) prompt += `\n## 📚 ${p1.name}의 나라 (${p1.country}) 특성\n${p1mk.slice(0, 800)}\n`;
-  if (p2mk) prompt += `\n## 📚 ${p2.name}의 나라 (${p2.country}) 특성\n${p2mk.slice(0, 800)}\n`;
-  if (p1ck) prompt += `\n## 🎯 ${p1.name}의 조합 분석\n${p1ck.slice(0, 800)}\n`;
-  if (p2ck) prompt += `\n## 🎯 ${p2.name}의 조합 분석\n${p2ck.slice(0, 800)}\n`;
+  if (p1mk) prompt += `\n## 📚 ${p1Name}의 나라 (${p1Country}) 특성\n${p1mk.slice(0, 800)}\n`;
+  if (p2mk) prompt += `\n## 📚 ${p2Name}의 나라 (${p2Country}) 특성\n${p2mk.slice(0, 800)}\n`;
+  if (p1ck) prompt += `\n## 🎯 ${p1Name}의 조합 분석\n${p1ck.slice(0, 800)}\n`;
+  if (p2ck) prompt += `\n## 🎯 ${p2Name}의 조합 분석\n${p2ck.slice(0, 800)}\n`;
 
   prompt += `\n위 PDF 원문을 **반드시 참고**하여, 이모지와 구조화된 형식으로 분석해주세요:
 
@@ -316,9 +375,12 @@ function generateFamilyPrompt(data) {
   let prompt = '[다중 관계 분석 요청]\n\n구성원 정보:\n';
 
   members.forEach((m, i) => {
-    const rel = labels[m.relation] || m.relation || '기타';
+    const rel = labels[m.relation] || '기타';
     const gender = m.gender === 'male' ? '남성' : '여성';
-    prompt += `\n${i + 1}. ${m.name} (${rel}, ${gender})\n   - 음력: ${m.month}월 ${m.day}일\n   - 나라: ${m.country}\n   - 동물: ${m.animal}\n`;
+    const mName = sanitizeUserInput(m.name) || `구성원${i + 1}`;
+    const mCountry = sanitizeUserInput(m.country);
+    const mAnimal = sanitizeUserInput(m.animal);
+    prompt += `\n${i + 1}. ${mName} (${rel}, ${gender})\n   - 음력: ${m.month}월 ${m.day}일\n   - 나라: ${mCountry}\n   - 동물: ${mAnimal}\n`;
   });
 
   prompt += `\n이 그룹의 관계를 종합적으로 분석해주세요:
@@ -349,27 +411,39 @@ async function callOpenAI(env, messages) {
 
   const model = env.OPENAI_MODEL || 'gpt-4o';
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: 0.8,
-      max_tokens: 4000,
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000); // 25초 타임아웃
+
+  let res;
+  try {
+    res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: 0.8,
+        max_tokens: 4000,
+      }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`OpenAI API 오류 (${res.status}): ${errText}`);
+    throw new Error(`OpenAI API 오류 (${res.status})`);
   }
 
   const data = await res.json();
-  return data.choices[0].message.content;
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new Error('OpenAI 응답에서 콘텐츠를 추출할 수 없습니다.');
+  }
+  return content;
 }
 
 // ── 라우터 ───────────────────────────────────────────────────────
@@ -383,10 +457,32 @@ async function handleRequest(request, env) {
     return handleOptions(request, env);
   }
 
+  const requestId = crypto.randomUUID();
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-Request-Id': requestId,
     ...corsHeaders(request, env),
   };
+
+  // Rate limiting (POST 요청만)
+  if (request.method === 'POST') {
+    const clientIP = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+    cleanupRateLimits();
+    if (!checkRateLimit(clientIP)) {
+      return new Response(JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }), {
+        status: 429,
+        headers: { ...headers, 'Retry-After': '60' },
+      });
+    }
+
+    // Body size check
+    const contentLength = parseInt(request.headers.get('Content-Length') || '0', 10);
+    if (contentLength > MAX_BODY_SIZE) {
+      return new Response(JSON.stringify({ error: '요청 크기가 너무 큽니다.' }), { status: 413, headers });
+    }
+  }
 
   // Health check
   if (path === '/' || path === '/api/health') {
@@ -395,19 +491,32 @@ async function handleRequest(request, env) {
       service: '아니모라 백엔드 API (Cloudflare Workers)',
       version: '1.0.0',
       timestamp: new Date().toISOString(),
-      openai_configured: !!env.OPENAI_API_KEY,
     }), { headers });
   }
 
   // AI 분석
   if (path === '/api/ai-analysis' && request.method === 'POST') {
+    let body;
+    try { body = await request.json(); } catch {
+      return new Response(JSON.stringify({ error: '잘못된 JSON 형식입니다.' }), { status: 400, headers });
+    }
     try {
-      const body = await request.json();
       const analysisData = body.analysisData || {};
       const questionType = body.questionType || 'basic';
 
       if (!analysisData || Object.keys(analysisData).length === 0) {
         return new Response(JSON.stringify({ error: '분석 데이터가 필요합니다' }), { status: 400, headers });
+      }
+
+      // type 검증
+      const validTypes = ['personal', 'couple', 'family'];
+      if (analysisData.type && !validTypes.includes(analysisData.type)) {
+        return new Response(JSON.stringify({ error: '지원하지 않는 분석 유형입니다.' }), { status: 400, headers });
+      }
+
+      // family 멤버 수 제한
+      if (analysisData.type === 'family' && Array.isArray(analysisData.members) && analysisData.members.length > 10) {
+        return new Response(JSON.stringify({ error: '구성원은 최대 10명까지 지원합니다.' }), { status: 400, headers });
       }
 
       const userPrompt = generatePrompt(analysisData, questionType);
@@ -424,21 +533,29 @@ async function handleRequest(request, env) {
       }), { headers });
 
     } catch (err) {
+      console.error('[ai-analysis]', err.message || err);
       return new Response(JSON.stringify({
         success: false,
-        error: err.message,
+        error: '분석 처리 중 오류가 발생했습니다.',
       }), { status: 500, headers });
     }
   }
 
   // 맞춤형 질문
   if (path === '/api/custom-question' && request.method === 'POST') {
+    let body;
+    try { body = await request.json(); } catch {
+      return new Response(JSON.stringify({ error: '잘못된 JSON 형식입니다.' }), { status: 400, headers });
+    }
     try {
-      const body = await request.json();
       const prompt = body.prompt;
 
       if (!prompt) {
         return new Response(JSON.stringify({ error: '프롬프트가 필요합니다' }), { status: 400, headers });
+      }
+
+      if (typeof prompt !== 'string' || prompt.length > MAX_PROMPT_LENGTH) {
+        return new Response(JSON.stringify({ error: '프롬프트가 너무 깁니다.' }), { status: 400, headers });
       }
 
       const answer = await callOpenAI(env, [
@@ -454,9 +571,10 @@ async function handleRequest(request, env) {
       }), { headers });
 
     } catch (err) {
+      console.error('[custom-question]', err.message || err);
       return new Response(JSON.stringify({
         success: false,
-        error: err.message,
+        error: '질문 처리 중 오류가 발생했습니다.',
       }), { status: 500, headers });
     }
   }

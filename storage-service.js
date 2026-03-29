@@ -183,14 +183,23 @@ class StorageService {
     importHistory(jsonString) {
         try {
             const imported = JSON.parse(jsonString);
-            
+
             if (!imported.data || !Array.isArray(imported.data)) {
                 throw new Error('잘못된 데이터 형식');
             }
-            
+
+            // 스키마 검증 및 크기 제한
+            const MAX_IMPORT = 500;
+            const validItems = imported.data.slice(0, MAX_IMPORT).filter(item =>
+                item && typeof item.id === 'string' &&
+                typeof item.timestamp === 'string' &&
+                ['personal', 'couple', 'family'].includes(item.type) &&
+                item.data && typeof item.data === 'object'
+            );
+
             // 기존 히스토리와 병합
             const existing = this.getHistory();
-            const merged = [...imported.data, ...existing];
+            const merged = [...validItems, ...existing];
             
             // 중복 제거 (ID 기준)
             const unique = merged.filter((item, index, self) =>
@@ -215,7 +224,7 @@ class StorageService {
      * @returns {String} 고유 ID
      */
     _generateId() {
-        return `animora_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        return `animora_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
     
     /**

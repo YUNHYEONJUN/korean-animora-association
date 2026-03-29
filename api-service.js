@@ -123,10 +123,11 @@ class AnimoraAPIService {
                 throw new Error('지원하지 않는 질문 유형입니다.');
             }
 
-            // 프롬프트 생성
+            // 프롬프트 생성 (키를 정규식 안전하게 이스케이프)
             prompt = template.prompt;
             Object.keys(data.variables).forEach(key => {
-                prompt = prompt.replace(new RegExp('\\{\\{' + key + '\\}\\}', 'g'), data.variables[key] || '');
+                const safeKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                prompt = prompt.replace(new RegExp('\\{\\{' + safeKey + '\\}\\}', 'g'), data.variables[key] || '');
             });
         }
 

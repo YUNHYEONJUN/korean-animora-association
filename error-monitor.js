@@ -20,8 +20,8 @@ const AnimoraErrorMonitor = (() => {
             errors.push({
                 ...errorData,
                 timestamp: new Date().toISOString(),
-                url: location.href,
-                userAgent: navigator.userAgent
+                url: typeof location !== 'undefined' ? location.href : '',
+                userAgent: typeof navigator !== 'undefined' ? (navigator.userAgent || '') : ''
             });
             // 최대 개수 유지
             while (errors.length > MAX_ERRORS) errors.shift();

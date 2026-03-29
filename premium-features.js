@@ -60,9 +60,10 @@ class PremiumFeatures {
             doc.line(margin, yPosition, pageWidth - margin, yPosition);
             yPosition += 8;
             
-            // HTML에서 텍스트 추출 (AI 분석 결과 포함)
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = resultHTML;
+            // HTML에서 텍스트 추출 (AI 분석 결과 포함) — DOMParser로 안전 파싱
+            const parser = new DOMParser();
+            const tempDoc = parser.parseFromString(resultHTML, 'text/html');
+            const tempDiv = tempDoc.body;
             
             // 모든 result-card 추출 (기본 분석 + AI 분석 + 맞춤형 질문)
             const resultCards = tempDiv.querySelectorAll('.result-card');
@@ -168,6 +169,8 @@ class PremiumFeatures {
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+            script.integrity = 'sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHLQQ==';
+            script.crossOrigin = 'anonymous';
             script.onload = resolve;
             script.onerror = reject;
             document.head.appendChild(script);
@@ -180,9 +183,9 @@ class PremiumFeatures {
      * HTML 태그 제거
      */
     _stripHTML(html) {
-        const tmp = document.createElement('DIV');
-        tmp.innerHTML = html;
-        return tmp.textContent || tmp.innerText || '';
+        // 안전하게 태그만 제거 (innerHTML 파싱 대신 정규식 사용)
+        if (typeof html !== 'string') return '';
+        return html.replace(/<[^>]*>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&amp;/g, '&');
     }
     
     /**
@@ -250,7 +253,8 @@ class PremiumFeatures {
      */
     _shareFacebook(url) {
         const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-        window.open(shareUrl, '_blank', 'width=600,height=400');
+        const win = window.open(shareUrl, '_blank', 'width=600,height=400');
+        if (!win) alert('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.');
     }
     
     /**
@@ -258,7 +262,8 @@ class PremiumFeatures {
      */
     _shareTwitter(url, title) {
         const shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
-        window.open(shareUrl, '_blank', 'width=600,height=400');
+        const win = window.open(shareUrl, '_blank', 'width=600,height=400');
+        if (!win) alert('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.');
     }
     
     /**
@@ -358,8 +363,8 @@ class PremiumFeatures {
                         ${this._getHistoryPreview(item)}
                     </div>
                     <div class="history-actions">
-                        <button class="btn-view" onclick="viewHistory('${item.id}')">보기</button>
-                        <button class="btn-delete" onclick="deleteHistory('${item.id}')">삭제</button>
+                        <button class="btn-view" onclick="viewHistory('${(item.id || '').replace(/'/g, "\\'")}')">보기</button>
+                        <button class="btn-delete" onclick="deleteHistory('${(item.id || '').replace(/'/g, "\\'")}')">삭제</button>
                     </div>
                 </div>
             `;
@@ -374,16 +379,19 @@ class PremiumFeatures {
      * 히스토리 미리보기 텍스트
      */
     _getHistoryPreview(item) {
-        const data = item.data;
-        
+        const data = item.data || {};
+
         if (item.type === 'personal') {
-            return `${data.name} - ${data.month}월 ${data.day}일`;
+            return `${data.name || '이름없음'} - ${data.month || '?'}월 ${data.day || '?'}일`;
         } else if (item.type === 'couple') {
-            return `${data.person1.name} & ${data.person2.name}`;
+            const p1 = data.person1 || {};
+            const p2 = data.person2 || {};
+            return `${p1.name || '사람1'} & ${p2.name || '사람2'}`;
         } else if (item.type === 'family') {
-            return `가족 ${data.members.length}명 분석`;
+            const members = data.members || [];
+            return `가족 ${members.length}명 분석`;
         }
-        
+
         return '분석 결과';
     }
 }
@@ -403,8 +411,11 @@ function viewHistory(id) {
 function deleteHistory(id) {
     if (confirm('이 분석을 삭제하시겠습니까?')) {
         storageService.deleteAnalysis(id);
-        // 히스토리 UI 새로고침
-        location.reload();
+        // 히스토리 UI 갱신
+        const historyContainer = document.querySelector('.history-list')?.parentElement;
+        if (historyContainer) {
+            historyContainer.innerHTML = premiumFeatures.generateHistoryHTML();
+        }
     }
 }
 
