@@ -7,6 +7,48 @@ class AnimoraAPIService {
     constructor() {
         this.config = ANIMORA_CONFIG;
         this.isPremiumUser = false; // 실제로는 사용자 인증 시스템에서 관리
+        this._pendingRequests = new Map();
+    }
+
+    /**
+     * 재시도 로직이 포함된 fetch 래퍼
+     * @param {string} url - 요청 URL
+     * @param {Object} options - fetch 옵션
+     * @param {number} retries - 최대 재시도 횟수
+     * @returns {Promise<Response>}
+     */
+    async _fetchWithRetry(url, options, retries = 2) {
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            try {
+                const response = await fetch(url, { ...options, signal: controller.signal });
+                clearTimeout(timeoutId);
+                if (response.ok || attempt === retries) return response;
+                // 서버 오류(5xx)만 재시도
+                if (response.status < 500) return response;
+            } catch (err) {
+                clearTimeout(timeoutId);
+                if (attempt === retries) throw err;
+            }
+            // 지수 백오프: 1초, 2초
+            await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+        }
+    }
+
+    /**
+     * 디바운스된 요청 (동일 키로 중복 요청 방지)
+     * @param {string} key - 요청 식별 키
+     * @param {Function} fn - 실행할 비동기 함수
+     * @returns {Promise}
+     */
+    async _deduplicateRequest(key, fn) {
+        if (this._pendingRequests.has(key)) {
+            return this._pendingRequests.get(key);
+        }
+        const promise = fn().finally(() => this._pendingRequests.delete(key));
+        this._pendingRequests.set(key, promise);
+        return promise;
     }
     
     /**
@@ -20,53 +62,38 @@ class AnimoraAPIService {
             return this._getMockAIResponse(analysisData, questionType);
         }
         
+        const requestKey = `analysis_${JSON.stringify(analysisData)}_${questionType}`;
+
         try {
-            // 실제 API 호출은 백엔드를 통해 진행 (보안)
-            const apiUrl = this.config.api.backend.baseUrl + this.config.api.backend.endpoints.analysis;
+            return await this._deduplicateRequest(requestKey, async () => {
+                const apiUrl = this.config.api.backend.baseUrl + this.config.api.backend.endpoints.analysis;
 
-            console.log('API 호출 중:', apiUrl);
+                const response = await this._fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        analysisData,
+                        questionType,
+                        timestamp: new Date().toISOString()
+                    }),
+                    mode: 'cors',
+                    credentials: 'omit',
+                    cache: 'no-cache'
+                });
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000);
+                if (!response.ok) {
+                    throw new Error('API 요청 실패');
+                }
 
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    analysisData,
-                    questionType,
-                    timestamp: new Date().toISOString()
-                }),
-                mode: 'cors',
-                credentials: 'omit',
-                cache: 'no-cache',
-                signal: controller.signal
+                const data = await response.json();
+
+                if (data.success && data.analysis) {
+                    return data.analysis;
+                } else {
+                    throw new Error('분석 데이터 없음');
+                }
             });
-
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('API 응답 오류:', errorText);
-                throw new Error('API 요청 실패');
-            }
-            
-            const data = await response.json();
-            console.log('API 응답 성공:', data);
-            
-            if (data.success && data.analysis) {
-                return data.analysis;
-            } else {
-                throw new Error('분석 데이터 없음');
-            }
-            
         } catch (error) {
-            console.error('❌ AI 분석 생성 오류:', error);
-            console.error('오류 상세:', error.message);
-            console.error('오류 스택:', error.stack);
-            // 오류 시 기본 분석 반환
             return this._getMockAIResponse(analysisData, questionType);
         }
     }
@@ -110,51 +137,39 @@ class AnimoraAPIService {
             return this._getMockCustomResponse(templateId, data);
         }
         
+        const requestKey = `custom_${templateId}_${JSON.stringify(data.variables)}`;
+
         try {
-            const apiUrl = this.config.api.backend.baseUrl + this.config.api.backend.endpoints.customQuestion;
+            return await this._deduplicateRequest(requestKey, async () => {
+                const apiUrl = this.config.api.backend.baseUrl + this.config.api.backend.endpoints.customQuestion;
 
-            console.log('맞춤 질문 API 호출:', apiUrl);
+                const response = await this._fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt,
+                        templateId: templateId,
+                        data,
+                        timestamp: new Date().toISOString()
+                    }),
+                    mode: 'cors',
+                    credentials: 'omit',
+                    cache: 'no-cache'
+                });
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000);
+                if (!response.ok) {
+                    throw new Error('맞춤 질문 요청 실패');
+                }
 
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    prompt,
-                    templateId: templateId,
-                    data,
-                    timestamp: new Date().toISOString()
-                }),
-                mode: 'cors',
-                credentials: 'omit',
-                cache: 'no-cache',
-                signal: controller.signal
+                const result = await response.json();
+
+                if (result.success && result.answer) {
+                    return result.answer;
+                } else {
+                    throw new Error('응답 데이터 없음');
+                }
             });
-
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('맞춤 질문 API 오류:', errorText);
-                throw new Error('맞춤 질문 요청 실패');
-            }
-            
-            const result = await response.json();
-            console.log('맞춤 질문 응답 성공:', result);
-            
-            if (result.success && result.answer) {
-                return result.answer;
-            } else {
-                throw new Error('응답 데이터 없음');
-            }
-            
         } catch (error) {
-            console.error('맞춤 질문 처리 오류:', error);
-            // 자유 질문의 경우 mock 응답 없음
             if (data.questionType === 'free_form') {
                 throw error;
             }
@@ -169,7 +184,6 @@ class AnimoraAPIService {
      */
     async processPayment(paymentData) {
         // 실제로는 PG사 연동 (토스페이먼츠, 카카오페이 등)
-        console.log('결제 처리:', paymentData);
         
         return {
             success: false,

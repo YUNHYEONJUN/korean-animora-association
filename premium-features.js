@@ -156,7 +156,6 @@ class PremiumFeatures {
             
             return true;
         } catch (error) {
-            console.error('PDF 생성 오류:', error);
             alert('PDF 다운로드 중 오류가 발생했습니다.\n오류: ' + error.message);
             return false;
         }
@@ -270,7 +269,6 @@ class PremiumFeatures {
             navigator.clipboard.writeText(url).then(() => {
                 alert('링크가 복사되었습니다!');
             }).catch(err => {
-                console.error('링크 복사 실패:', err);
                 this._fallbackCopyLink(url);
             });
         } else {

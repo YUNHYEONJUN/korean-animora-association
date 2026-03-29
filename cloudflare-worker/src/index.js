@@ -181,10 +181,10 @@ function getCombinationKnowledge(month, day) {
 function corsHeaders(request, env) {
   const origin = request.headers.get('Origin') || '';
   const allowed = (env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim());
-  // 개발 시 localhost도 허용
+  // 개발 시 localhost 허용 (환경변수 ALLOW_LOCALHOST=true 설정 필요)
+  const allowLocalhost = env.ALLOW_LOCALHOST === 'true';
   const isAllowed = allowed.includes(origin) ||
-    origin.startsWith('http://localhost') ||
-    origin.startsWith('http://127.0.0.1');
+    (allowLocalhost && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')));
 
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : allowed[0],

@@ -27,6 +27,18 @@ body {
     overflow-x: hidden;
 }
 
+/* 커스텀 포커스 스타일 (접근성) */
+:focus-visible {
+    outline: 3px solid var(--secondary-color);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* 키보드 사용자가 아닐 때는 아웃라인 숨기기 */
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -152,6 +164,47 @@ body {
     display: block;
 }
 
+/* Breadcrumb */
+.breadcrumb {
+    background: #f5f5f5;
+    padding: 10px 0;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.breadcrumb-list {
+    list-style: none;
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+}
+
+.breadcrumb-list li::before {
+    content: '›';
+    margin-right: 8px;
+    color: #999;
+}
+
+.breadcrumb-list li:first-child::before {
+    content: '';
+    margin: 0;
+}
+
+.breadcrumb-list a {
+    color: var(--primary-color, #2c3e89);
+    text-decoration: none;
+}
+
+.breadcrumb-list a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-list li[aria-current="page"] {
+    color: #666;
+}
+
 /* Hero Section */
 .hero {
     position: relative;
@@ -161,7 +214,7 @@ body {
     justify-content: center;
     background-color: #2c3e89;
     background: linear-gradient(rgba(44, 62, 137, 0.5), rgba(74, 95, 193, 0.5)),
-                url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070&auto=format&fit=crop') center center / cover no-repeat;
+                url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=75&w=1280&auto=format&fit=crop&fm=webp') center center / cover no-repeat;
     color: white;
     overflow: hidden;
 }

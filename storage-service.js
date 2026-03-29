@@ -45,7 +45,6 @@ class StorageService {
             
             return true;
         } catch (error) {
-            console.error('분석 저장 오류:', error);
             return false;
         }
     }
@@ -59,7 +58,6 @@ class StorageService {
             const data = localStorage.getItem(this.storageKey);
             return data ? JSON.parse(data) : [];
         } catch (error) {
-            console.error('히스토리 조회 오류:', error);
             return [];
         }
     }
@@ -86,7 +84,6 @@ class StorageService {
             localStorage.setItem(this.storageKey, JSON.stringify(filtered));
             return true;
         } catch (error) {
-            console.error('분석 삭제 오류:', error);
             return false;
         }
     }
@@ -100,7 +97,6 @@ class StorageService {
             localStorage.removeItem(this.storageKey);
             return true;
         } catch (error) {
-            console.error('히스토리 삭제 오류:', error);
             return false;
         }
     }
@@ -210,7 +206,6 @@ class StorageService {
             return true;
             
         } catch (error) {
-            console.error('히스토리 가져오기 오류:', error);
             return false;
         }
     }

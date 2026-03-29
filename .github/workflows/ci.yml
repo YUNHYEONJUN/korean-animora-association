@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: HTML 유효성 검사
+        run: |
+          npx html-validate index.html analysis.html education.html || true
+
+      - name: CSS 유효성 검사
+        run: |
+          npx stylelint "*.css" --config '{"extends":"stylelint-config-standard"}' || true
+
+      - name: JS 문법 검사
+        run: |
+          npx eslint *.js --no-eslintrc --rule '{"no-undef":"warn","no-unused-vars":"warn"}' --env browser || true
+
+      - name: 테스트 실행
+        run: |
+          if [ -f test-validate.cjs ]; then
+            node test-validate.cjs
+          fi
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            https://yunhyeonjun.github.io/korean-animora-association/
+          uploadArtifacts: true

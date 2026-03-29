@@ -1,3 +1,5 @@
+(() => {
+'use strict';
 // Mobile Navigation Toggle
 const hamburger = document.querySelector('.hamburger');
 const navMenu = document.querySelector('.nav-menu');
@@ -9,19 +11,57 @@ document.body.appendChild(menuBackdrop);
 
 function closeMenu() {
     navMenu.classList.remove('active');
-    if (hamburger) hamburger.classList.remove('active');
+    if (hamburger) {
+        hamburger.classList.remove('active');
+        hamburger.setAttribute('aria-expanded', 'false');
+    }
     menuBackdrop.classList.remove('active');
+    // 포커스 복원
+    if (hamburger) hamburger.focus();
 }
 
 if (hamburger) {
+    hamburger.setAttribute('aria-expanded', 'false');
+    hamburger.setAttribute('aria-controls', 'nav-menu');
+
     hamburger.addEventListener('click', () => {
         const isOpen = navMenu.classList.toggle('active');
         hamburger.classList.toggle('active');
+        hamburger.setAttribute('aria-expanded', String(isOpen));
         menuBackdrop.classList.toggle('active', isOpen);
+
+        // 포커스 트랩: 메뉴 열렸을 때 첫 링크로 포커스 이동
+        if (isOpen) {
+            const firstLink = navMenu.querySelector('a');
+            if (firstLink) firstLink.focus();
+        }
+    });
+
+    // 키보드로 햄버거 메뉴 토글
+    hamburger.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            hamburger.click();
+        }
+        if (e.key === 'Escape' && navMenu.classList.contains('active')) {
+            closeMenu();
+        }
     });
 }
 
+// nav-menu에 id 추가 (aria-controls 연결)
+if (navMenu) {
+    navMenu.id = 'nav-menu';
+}
+
 menuBackdrop.addEventListener('click', closeMenu);
+
+// Escape 키로 메뉴 닫기
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && navMenu && navMenu.classList.contains('active')) {
+        closeMenu();
+    }
+});
 
 // Close mobile menu when clicking on a link
 const navLinks = document.querySelectorAll('.nav-menu a');
@@ -40,6 +80,9 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 top: offsetTop,
                 behavior: 'smooth'
             });
+            // 포커스를 대상 요소로 이동 (접근성)
+            target.setAttribute('tabindex', '-1');
+            target.focus({ preventScroll: true });
         }
     });
 });
@@ -138,6 +181,8 @@ if (counterElement) {
                         requestAnimationFrame(updateCounter);
                     } else {
                         counterElement.textContent = targetNumber;
+                        // 애니메이션 완료 후 옵저버 정리
+                        counterObserver.disconnect();
                     }
                 };
                 updateCounter();
@@ -147,3 +192,4 @@ if (counterElement) {
 
     counterObserver.observe(counterElement);
 }
+})();

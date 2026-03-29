@@ -84,17 +84,13 @@ function populateDaySelects() {
     selectIds.forEach(selectId => {
         const select = document.getElementById(selectId);
         if (!select) {
-            console.warn(`${selectId} 요소를 찾을 수 없습니다`);
             return;
         }
         
         // 이미 옵션이 30개 이상이면 스킵 (이미 채워짐)
         if (select.options.length > 30) {
-            console.log(`${selectId} 이미 채워져 있음`);
             return;
         }
-        
-        console.log(`${selectId} 드롭다운 채우는 중...`);
         
         // 기존 옵션 제거 (선택 옵션 제외)
         while (select.options.length > 1) {
@@ -103,7 +99,6 @@ function populateDaySelects() {
         
         for (let i = 1; i <= 30; i++) {
             if (!animals[i]) {
-                console.warn(`animals[${i}] 없음`);
                 continue;
             }
             
@@ -113,7 +108,6 @@ function populateDaySelects() {
             select.appendChild(option);
         }
         
-        console.log(`${selectId} 완료: ${select.options.length - 1}개 옵션 추가됨`);
     });
     
     // 가족 구성원의 day 드롭다운도 채우기
@@ -226,7 +220,7 @@ function removeFamilyMember(memberId) {
 function handlePersonalSubmit(e) {
     e.preventDefault();
     
-    const name = document.getElementById('personal-name').value;
+    const name = AnimoraSanitizer.escapeHTML(document.getElementById('personal-name').value);
     const gender = document.getElementById('personal-gender').value;
     const month = parseInt(document.getElementById('personal-month').value);
     const day = parseInt(document.getElementById('personal-day').value);
@@ -253,14 +247,14 @@ function handleCoupleSubmit(e) {
     e.preventDefault();
     
     const person1 = {
-        name: document.getElementById('couple-name1').value,
+        name: AnimoraSanitizer.escapeHTML(document.getElementById('couple-name1').value),
         gender: document.getElementById('couple-gender1').value,
         month: parseInt(document.getElementById('couple-month1').value),
         day: parseInt(document.getElementById('couple-day1').value)
     };
     
     const person2 = {
-        name: document.getElementById('couple-name2').value,
+        name: AnimoraSanitizer.escapeHTML(document.getElementById('couple-name2').value),
         gender: document.getElementById('couple-gender2').value,
         month: parseInt(document.getElementById('couple-month2').value),
         day: parseInt(document.getElementById('couple-day2').value)
@@ -301,7 +295,7 @@ function handleFamilySubmit(e) {
     
     memberCards.forEach(card => {
         const memberId = card.dataset.member;
-        const name = document.getElementById(`family-name-${memberId}`).value;
+        const name = AnimoraSanitizer.escapeHTML(document.getElementById(`family-name-${memberId}`).value);
         const relation = document.getElementById(`family-relation-${memberId}`).value;
         const gender = document.getElementById(`family-gender-${memberId}`).value;
         const month = parseInt(document.getElementById(`family-month-${memberId}`).value);
@@ -693,7 +687,7 @@ function saveAnalysisToHistory() {
             btn.disabled = true;
         }
     } catch (error) {
-        console.error('저장 오류:', error);
+        // 저장 실패 - 무시
     }
 }
 
@@ -762,8 +756,6 @@ async function requestAIAnalysis() {
             throw new Error('API가 비활성화되어 있습니다');
         }
 
-        console.log('AI 분석 요청 시작:', window.currentAnalysisData);
-
         // AI 분석 생성
         const aiAnalysis = await animoraAPI.generateAIAnalysis(
             window.currentAnalysisData,
@@ -774,7 +766,6 @@ async function requestAIAnalysis() {
         displayAIAnalysisResult(aiAnalysis);
 
     } catch (error) {
-        console.error('AI 분석 오류:', error);
         // 인라인 에러 메시지 표시
         const resultContent = document.getElementById('result-content');
         const errorHTML = `
@@ -940,8 +931,7 @@ async function askCustomQuestion(templateId) {
         displayCustomAnswer(template, answer);
         
     } catch (error) {
-        console.error('맞춤 질문 오류:', error);
-        alert('❌ 답변 생성 중 오류가 발생했습니다.\n' + error.message);
+        alert('답변 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
         // 로딩 제거
         const loading = document.getElementById('ai-loading');
@@ -1007,8 +997,7 @@ async function askFreeFormQuestion() {
         displayFreeFormAnswer(question, answer);
         
     } catch (error) {
-        console.error('자유 질문 오류:', error);
-        alert('❌ 답변 생성 중 오류가 발생했습니다.\n' + error.message);
+        alert('답변 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
         // 로딩 제거
         const loading = document.getElementById('ai-loading');

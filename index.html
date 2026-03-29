@@ -12,10 +12,26 @@
     <meta property="og:image" content="https://yunhyeonjun.github.io/korean-animora-association/president-photo.jpg">
     <title>한국아니모라협회 - Korean Animora Association</title>
     <link rel="canonical" href="https://yunhyeonjun.github.io/korean-animora-association/">
+    <meta name="theme-color" content="#2c3e89">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://yunhyeonjun.github.io; connect-src 'self' https://*.workers.dev https://api.openai.com https://www.google-analytics.com;">
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232c3e89'/><text x='50' y='62' font-size='48' font-weight='bold' fill='%23d4af37' text-anchor='middle' font-family='serif'>A</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+    /* Critical CSS - above-the-fold */
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--primary-color:#2c3e89;--secondary-color:#4a5fc1;--accent-color:#d4af37;--text-dark:#1a1a1a;--text-light:#666;--bg-white:#fff;--shadow-sm:0 2px 8px rgba(0,0,0,.08)}
+    body{font-family:'Noto Sans KR',sans-serif;color:var(--text-dark);line-height:1.7;overflow-x:hidden}
+    .container{max-width:1200px;margin:0 auto;padding:0 20px}
+    .navbar{background:var(--bg-white);box-shadow:var(--shadow-sm);position:sticky;top:0;z-index:1000}
+    .navbar .container{display:flex;justify-content:space-between;align-items:center;padding:1rem 20px}
+    .nav-brand h1{font-size:1.5rem;color:var(--primary-color);font-weight:700}
+    .nav-menu{display:flex;list-style:none;gap:2rem}
+    .nav-menu a{text-decoration:none;color:var(--text-dark);font-weight:500;font-size:.95rem}
+    .hamburger{display:none}
+    </style>
     <link rel="stylesheet" href="styles.css">
     <script type="application/ld+json">
     {
@@ -30,6 +46,49 @@
             "@type": "Person",
             "name": "임선민"
         }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "아니모라 성격 분석",
+        "applicationCategory": "LifestyleApplication",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" },
+        "operatingSystem": "Web"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "아니모라(ANIMORA)란 무엇인가요?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "아니모라는 라틴어 Anima(영혼)과 Ora(말하다)의 합성어로, 음력 생일의 월(12개 나라)과 일(30개 동물)을 조합하여 360가지 인생 유형을 분석하는 시스템입니다."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "아니모라 분석은 무료인가요?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "기본 성격 분석은 무료로 제공됩니다. 양력 생일만 입력하면 바로 결과를 확인할 수 있습니다."
+                }
+            }
+        ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "홈", "item": "https://yunhyeonjun.github.io/korean-animora-association/" }
+        ]
     }
     </script>
 </head>
@@ -239,9 +298,9 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>구분</th>
-                            <th>기존 성격 분석</th>
-                            <th>아니모라 AI</th>
+                            <th scope="col">구분</th>
+                            <th scope="col">기존 성격 분석</th>
+                            <th scope="col">아니모라 AI</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -507,10 +566,34 @@
     </footer>
 
     <button id="scroll-top" class="scroll-top-btn" aria-label="맨 위로 이동">↑</button>
+    <script src="error-monitor.js"></script>
+    <script src="config.js"></script>
+    <script>
+    // Google Analytics 조건부 로드
+    if (ANIMORA_CONFIG.analytics.enabled && ANIMORA_CONFIG.analytics.gaId) {
+        const s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + ANIMORA_CONFIG.analytics.gaId;
+        document.head.appendChild(s);
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', ANIMORA_CONFIG.analytics.gaId);
+    }
+    </script>
+    <script src="sanitize.js"></script>
     <script src="lunar-converter.js"></script>
     <script src="animora-data.js"></script>
     <script src="animal-icons.js"></script>
     <script src="script.js"></script>
     <script src="homepage-analysis.js"></script>
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/korean-animora-association/sw.js')
+                .catch(() => {});
+        });
+    }
+    </script>
 </body>
 </html>

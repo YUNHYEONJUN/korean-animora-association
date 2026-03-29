@@ -1,0 +1,18 @@
+{
+    "name": "한국아니모라협회 - Korean Animora Association",
+    "short_name": "아니모라",
+    "description": "음력 생일로 풀어보는 360가지 인생 유형",
+    "start_url": "/korean-animora-association/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#2c3e89",
+    "lang": "ko",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%232c3e89'/><text x='256' y='320' font-size='256' font-weight='bold' fill='%23d4af37' text-anchor='middle' font-family='serif'>A</text></svg>",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

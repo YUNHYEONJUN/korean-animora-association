@@ -3,10 +3,11 @@
  */
 
 function runHomeAnalysis() {
-    const year = parseInt(document.getElementById('solar-year').value);
-    const month = parseInt(document.getElementById('solar-month').value);
-    const day = parseInt(document.getElementById('solar-day').value);
-    const name = document.getElementById('analyzer-name').value.trim() || '방문자';
+    const year = AnimoraSanitizer.sanitizeNumber(document.getElementById('solar-year').value);
+    const month = AnimoraSanitizer.sanitizeNumber(document.getElementById('solar-month').value);
+    const day = AnimoraSanitizer.sanitizeNumber(document.getElementById('solar-day').value);
+    const rawName = document.getElementById('analyzer-name').value.trim();
+    const name = AnimoraSanitizer.escapeHTML(rawName) || '방문자';
     const resultDiv = document.getElementById('home-result');
 
     // 입력 검증
@@ -33,7 +34,7 @@ function runHomeAnalysis() {
         const lunar = solarToLunar(year, month, day);
 
         if (lunar.error) {
-            resultDiv.innerHTML = '<p class="result-error">' + lunar.error + '</p>';
+            resultDiv.innerHTML = '<p class="result-error">' + AnimoraSanitizer.sanitizeError(lunar.error) + '</p>';
             resultDiv.style.display = 'block';
             return;
         }
@@ -52,7 +53,7 @@ function runHomeAnalysis() {
             return;
         }
 
-        // 분석 결과 생성
+        // 분석 결과 생성 (name은 이미 이스케이프됨)
         const analysisHTML = generatePersonalAnalysisHTML(name, lunarMonth, lunarDay);
 
         resultDiv.innerHTML = `
@@ -75,12 +76,12 @@ function runHomeAnalysis() {
         resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     } catch (error) {
-        resultDiv.innerHTML = '<p class="result-error">변환 중 오류가 발생했습니다: ' + error.message + '</p>';
+        resultDiv.innerHTML = '<p class="result-error">변환 중 오류가 발생했습니다: ' + AnimoraSanitizer.sanitizeError(error.message) + '</p>';
         resultDiv.style.display = 'block';
     }
 }
 
-// 12 나라 카드 토글
+// 12 나라 카드 토글 (키보드 접근성 지원)
 function toggleCountry(card) {
     card.classList.toggle('expanded');
     const toggle = card.querySelector('.country-toggle');
@@ -99,9 +100,11 @@ function initAnimalIcons() {
     });
 }
 
-// Enter 키로 분석 실행
+// Enter 키로 분석 실행 + 키보드 접근성 초기화
 document.addEventListener('DOMContentLoaded', function() {
     initAnimalIcons();
+
+    // 분석 입력 필드 Enter 키 핸들러
     var inputs = ['solar-year', 'solar-month', 'solar-day', 'analyzer-name'];
     inputs.forEach(function(id) {
         var input = document.getElementById(id);
@@ -113,5 +116,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+    });
+
+    // 나라 카드 키보드 접근성 (Enter/Space)
+    var countryCards = document.querySelectorAll('.country-compact-card');
+    countryCards.forEach(function(card) {
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-expanded', 'false');
+        card.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleCountry(card);
+                card.setAttribute('aria-expanded', card.classList.contains('expanded'));
+            }
+        });
+        // 클릭 시에도 aria-expanded 업데이트
+        card.addEventListener('click', function() {
+            card.setAttribute('aria-expanded', card.classList.contains('expanded'));
+        });
     });
 });

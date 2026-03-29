@@ -3,7 +3,12 @@
  * API 키 및 프리미엄 기능 설정
  */
 
+// 환경 감지: GitHub Pages = production, localhost = development
+const ANIMORA_ENV = location.hostname.includes('github.io') ? 'production' : 'development';
+
 const ANIMORA_CONFIG = {
+    env: ANIMORA_ENV,
+    debug: ANIMORA_ENV === 'development',
     // API 설정
     api: {
         // OpenAI API 설정 (✅ 연동 완료)
@@ -321,6 +326,18 @@ const ANIMORA_CONFIG = {
         historyKey: 'animora_analysis_history',
         maxFreeHistory: 5,          // 무료 사용자 최대 저장 개수
         maxPremiumHistory: -1       // 프리미엄 사용자 무제한
+    },
+
+    // Google Analytics 설정 (GA4 측정 ID 입력 시 자동 활성화)
+    analytics: {
+        gaId: '', // 예: 'G-XXXXXXXXXX'
+        enabled: false // gaId 입력 후 true로 변경
+    },
+
+    // A/B 테스트 설정 (실험 추가 시 여기에 정의)
+    experiments: {
+        // 예시:
+        // 'cta_color': { variants: ['blue', 'green'], weight: [0.5, 0.5] }
     }
 };
 
