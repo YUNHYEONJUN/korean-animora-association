@@ -855,9 +855,13 @@ async function requestAIAnalysis() {
         // 인라인 에러 메시지 표시
         const resultContent = document.getElementById('result-content');
         const errorHTML = `
-            <div class="result-card" style="margin-top: 20px; border-left: 4px solid #e74c3c; background: #fef2f2;">
-                <p style="color: #e74c3c; font-weight: 600;">AI 분석을 불러오지 못했습니다.</p>
-                <p style="color: #666; margin-top: 8px;">잠시 후 다시 시도해주세요. 기본 분석은 위에서 확인하실 수 있습니다.</p>
+            <div class="ai-error-card" style="margin-top: 20px; border-left: 4px solid #e74c3c; background: #fef2f2; padding: 20px; border-radius: 10px;">
+                <p style="color: #e74c3c; font-weight: 600; margin-bottom: 8px;">AI 분석을 불러오지 못했습니다.</p>
+                <p style="color: #666; margin-bottom: 16px;">잠시 후 다시 시도해주세요. 기본 분석은 위에서 확인하실 수 있습니다.</p>
+                <button onclick="this.closest('.ai-error-card').remove(); requestAIAnalysis();"
+                    style="background:#e74c3c;color:white;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;font-weight:600;font-size:0.9rem;">
+                    🔄 다시 시도
+                </button>
             </div>
         `;
         resultContent.insertAdjacentHTML('beforeend', errorHTML);
