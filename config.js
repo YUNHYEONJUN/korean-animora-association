@@ -340,8 +340,8 @@ const ANIMORA_CONFIG = {
     // 카카오 공유 설정 (Kakao SDK)
     // kakao.com/developers 에서 JavaScript 키 발급 후 입력
     kakao: {
-        appKey: '', // 예: 'abcdef1234567890abcdef1234567890'
-        enabled: false, // appKey 입력 후 true로 변경
+        appKey: 'b11680e34b497d15b6b926eb0197140a',
+        enabled: true,
     },
 
     // Google Analytics 설정 (GA4 측정 ID 입력 시 자동 활성화)
