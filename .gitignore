@@ -2,3 +2,14 @@ dist/
 node_modules/
 .env
 *.log
+
+# Wrangler 빌드 캐시
+cloudflare-worker/.wrangler/
+
+# 내부 출판/기획 문서 (사이트 코드 아님)
+book/
+docs/
+
+# 대용량 바이너리 (로컬 작업용)
+*.pdf
+로고최종.png
