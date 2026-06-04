@@ -7,8 +7,14 @@ class StorageService {
     constructor() {
         this.config = ANIMORA_CONFIG;
         this.storageKey = this.config.storage.historyKey;
-        this.isPremium = false; // 실제로는 사용자 인증에서 관리
+        this._isPremium = false; // fallback
     }
+
+    get isPremium() {
+        return typeof AnimoraAuth !== 'undefined' ? AnimoraAuth.isPremium() : this._isPremium;
+    }
+
+    set isPremium(val) { this._isPremium = val; }
     
     /**
      * 분석 결과 저장

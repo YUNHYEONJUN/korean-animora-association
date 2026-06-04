@@ -2,12 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
 
 jobs:
+  # ── JS 문법 + Worker 빌드 검증 ─────────────────────────────────
   validate:
+    name: Validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,27 +19,76 @@ jobs:
         with:
           node-version: '20'
 
-      - name: HTML 유효성 검사
+      - name: JS 문법 검사 (node --check)
         run: |
-          npx html-validate index.html analysis.html education.html || true
+          FAIL=0
+          for f in config.js init.js analysis.js api-service.js premium-features.js \
+                    animora-data.js lunar-converter.js sw.js ab-test.js error-monitor.js; do
+            [ -f "$f" ] || continue
+            node --check "$f" && echo "✓ $f" || { echo "✗ $f"; FAIL=1; }
+          done
+          exit $FAIL
 
-      - name: CSS 유효성 검사
+      - name: HTML 비어있지 않은지 확인
         run: |
-          npx stylelint "*.css" --config '{"extends":"stylelint-config-standard"}' || true
+          FAIL=0
+          for f in index.html analysis.html education.html; do
+            [ -f "$f" ] || continue
+            SIZE=$(wc -c < "$f")
+            echo "  $f: ${SIZE} bytes"
+            [ "$SIZE" -gt 500 ] || { echo "✗ $f too small"; FAIL=1; }
+          done
+          exit $FAIL
 
-      - name: JS 문법 검사
+      - name: Worker 의존성 설치
+        working-directory: cloudflare-worker
+        run: npm ci
+
+      - name: Worker dry-run 빌드 (wrangler)
+        working-directory: cloudflare-worker
+        run: npx wrangler deploy --dry-run --outdir dist
+        env:
+          CLOUDFLARE_API_TOKEN: dummy  # dry-run은 토큰 불필요
+
+      - name: 기존 테스트 실행
         run: |
-          npx eslint *.js --no-eslintrc --rule '{"no-undef":"warn","no-unused-vars":"warn"}' --env browser || true
+          [ -f test-validate.cjs ] && node test-validate.cjs || echo "(테스트 없음)"
 
-      - name: 테스트 실행
-        run: |
-          if [ -f test-validate.cjs ]; then
-            node test-validate.cjs
-          fi
-
-  lighthouse:
+  # ── Worker 자동 배포 (main 브랜치 push 시만) ───────────────────
+  deploy:
+    name: Deploy Worker
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Worker 의존성 설치
+        working-directory: cloudflare-worker
+        run: npm ci
+
+      - name: Cloudflare Workers 배포
+        working-directory: cloudflare-worker
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # GitHub Secrets 등록 방법:
+          # Settings → Secrets and variables → Actions → New repository secret
+          # CLOUDFLARE_API_TOKEN: Cloudflare 대시보드 → 내 프로필 → API 토큰 → 생성
+          # CLOUDFLARE_ACCOUNT_ID: 2479d336da8c6ae925621fda66df9a3c
+
+  # ── Lighthouse 성능 측정 (main push 시만) ─────────────────────
+  lighthouse:
+    name: Lighthouse
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 

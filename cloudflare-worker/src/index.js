@@ -196,31 +196,47 @@ const MAX_BODY_SIZE = 50 * 1024; // 50KB
 const MAX_PROMPT_LENGTH = 5000;
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1분
 const RATE_LIMIT_MAX = 20; // 분당 최대 요청
+const RATE_LIMIT_KV_TTL = 120; // KV 항목 TTL(초)
 
-// 간이 인메모리 rate limiter (Worker 인스턴스별)
-const rateLimitMap = new Map();
+// ── 인메모리 rate limiter (KV 미설정 시 fallback, Worker 인스턴스별) ──
+const _memRateMap = new Map();
 
-function checkRateLimit(ip) {
+function _memCheckRateLimit(ip) {
   const now = Date.now();
-  const entry = rateLimitMap.get(ip);
+  const entry = _memRateMap.get(ip);
   if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW) {
-    rateLimitMap.set(ip, { windowStart: now, count: 1 });
+    _memRateMap.set(ip, { windowStart: now, count: 1 });
+    if (_memRateMap.size > 1000) {
+      for (const [k, v] of _memRateMap) {
+        if (now - v.windowStart > RATE_LIMIT_WINDOW * 2) _memRateMap.delete(k);
+      }
+    }
     return true;
   }
   entry.count++;
-  if (entry.count > RATE_LIMIT_MAX) return false;
-  return true;
+  return entry.count <= RATE_LIMIT_MAX;
 }
 
-// 오래된 rate limit 엔트리 정리 (요청 시 lazy cleanup)
-function cleanupRateLimits() {
+// ── KV-based rate limiter (Cloudflare KV가 바인딩된 경우 사용) ───
+// 설정: wrangler.toml 에 [[kv_namespaces]] binding = "RATE_LIMIT_KV" 추가 후 활성화됨
+async function checkRateLimit(env, ip) {
+  if (!env.RATE_LIMIT_KV) {
+    return _memCheckRateLimit(ip);
+  }
+  const key = `rl:${ip}`;
   const now = Date.now();
-  if (rateLimitMap.size > 1000) {
-    for (const [ip, entry] of rateLimitMap) {
-      if (now - entry.windowStart > RATE_LIMIT_WINDOW * 2) {
-        rateLimitMap.delete(ip);
-      }
+  try {
+    const raw = await env.RATE_LIMIT_KV.get(key, 'json');
+    if (!raw || now - raw.windowStart > RATE_LIMIT_WINDOW) {
+      await env.RATE_LIMIT_KV.put(key, JSON.stringify({ windowStart: now, count: 1 }), { expirationTtl: RATE_LIMIT_KV_TTL });
+      return true;
     }
+    if (raw.count >= RATE_LIMIT_MAX) return false;
+    await env.RATE_LIMIT_KV.put(key, JSON.stringify({ windowStart: raw.windowStart, count: raw.count + 1 }), { expirationTtl: RATE_LIMIT_KV_TTL });
+    return true;
+  } catch {
+    // KV 장애 시 인메모리 fallback
+    return _memCheckRateLimit(ip);
   }
 }
 
@@ -401,6 +417,343 @@ function generatePrompt(analysisData, questionType) {
   return '알 수 없는 분석 유형입니다.';
 }
 
+// ── JWT + PBKDF2 인증 시스템 ─────────────────────────────────────
+
+const _enc = new TextEncoder();
+const _dec = new TextDecoder();
+
+function _b64url(buf) {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  let s = '';
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function _b64urlDec(str) {
+  const b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = b64.padEnd(b64.length + (4 - b64.length % 4) % 4, '=');
+  const bin = atob(padded);
+  return new Uint8Array([...bin].map(c => c.charCodeAt(0)));
+}
+
+async function _jwtKey(secret) {
+  return crypto.subtle.importKey('raw', _enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
+}
+
+async function signJWT(payload, secret, ttlSec = 3600) {
+  const now = Math.floor(Date.now() / 1000);
+  const full = { ...payload, iat: now, exp: now + ttlSec };
+  const h = _b64url(_enc.encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
+  const p = _b64url(_enc.encode(JSON.stringify(full)));
+  const toSign = `${h}.${p}`;
+  const key = await _jwtKey(secret);
+  const sig = await crypto.subtle.sign('HMAC', key, _enc.encode(toSign));
+  return `${toSign}.${_b64url(sig)}`;
+}
+
+async function verifyJWT(token, secret) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const [h, p, s] = parts;
+    const key = await _jwtKey(secret);
+    const ok = await crypto.subtle.verify('HMAC', key, _b64urlDec(s), _enc.encode(`${h}.${p}`));
+    if (!ok) return null;
+    const payload = JSON.parse(_dec.decode(_b64urlDec(p)));
+    if (payload.exp < Math.floor(Date.now() / 1000)) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+async function hashPassword(password, saltHex) {
+  const salt = saltHex
+    ? new Uint8Array(saltHex.match(/.{2}/g).map(b => parseInt(b, 16)))
+    : crypto.getRandomValues(new Uint8Array(16));
+  const km = await crypto.subtle.importKey('raw', _enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 10000, hash: 'SHA-256' }, km, 256
+  );
+  const hash = Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+  const saltOut = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+  return { hash, salt: saltOut };
+}
+
+async function verifyPassword(password, hash, salt) {
+  const result = await hashPassword(password, salt);
+  // constant-time compare
+  if (result.hash.length !== hash.length) return false;
+  let diff = 0;
+  for (let i = 0; i < result.hash.length; i++) diff |= result.hash.charCodeAt(i) ^ hash.charCodeAt(i);
+  return diff === 0;
+}
+
+function extractBearer(request) {
+  const h = request.headers.get('Authorization') || '';
+  return h.startsWith('Bearer ') ? h.slice(7) : null;
+}
+
+async function getCurrentUser(request, env) {
+  if (!env.AUTH_SECRET) return null;
+  const token = extractBearer(request);
+  if (!token) return null;
+  return verifyJWT(token, env.AUTH_SECRET);
+}
+
+// ── 인증 엔드포인트 핸들러 ────────────────────────────────────────
+
+async function handleRegister(request, env, headers) {
+  if (!env.AUTH_KV || !env.AUTH_SECRET)
+    return new Response(JSON.stringify({ error: '인증 시스템이 준비되지 않았습니다.' }), { status: 503, headers });
+
+  let body;
+  try { body = await request.json(); } catch {
+    return new Response(JSON.stringify({ error: '잘못된 JSON입니다.' }), { status: 400, headers });
+  }
+
+  const email = (body.email || '').trim().toLowerCase();
+  const password = body.password || '';
+  const name = sanitizeUserInput(body.name || '').slice(0, 50) || email.split('@')[0];
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return new Response(JSON.stringify({ error: '유효한 이메일을 입력해주세요.' }), { status: 400, headers });
+  if (password.length < 8)
+    return new Response(JSON.stringify({ error: '비밀번호는 8자 이상이어야 합니다.' }), { status: 400, headers });
+
+  if (await env.AUTH_KV.get(`user:${email}`))
+    return new Response(JSON.stringify({ error: '이미 가입된 이메일입니다.' }), { status: 409, headers });
+
+  const { hash, salt } = await hashPassword(password, null);
+  const user = { email, name, passwordHash: hash, passwordSalt: salt, isPremium: false, createdAt: new Date().toISOString() };
+  await env.AUTH_KV.put(`user:${email}`, JSON.stringify(user));
+  _incr(env.ANALYSIS_CACHE_KV, 'stats:total:users').catch(() => {});
+
+  const accessToken = await signJWT({ sub: email, name, isPremium: false }, env.AUTH_SECRET, 3600);
+  const refreshToken = crypto.randomUUID();
+  await env.AUTH_KV.put(`rt:${refreshToken}`, JSON.stringify({ userId: email }), { expirationTtl: 30 * 24 * 3600 });
+
+  return new Response(JSON.stringify({ success: true, accessToken, refreshToken, user: { email, name, isPremium: false } }), { status: 201, headers });
+}
+
+async function handleLogin(request, env, headers) {
+  if (!env.AUTH_KV || !env.AUTH_SECRET)
+    return new Response(JSON.stringify({ error: '인증 시스템이 준비되지 않았습니다.' }), { status: 503, headers });
+
+  // 로그인 Brute Force 방어: 동일 IP 분당 5회 제한
+  const loginIP = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const loginRLKey = `rl:login:${loginIP}`;
+  if (env.RATE_LIMIT_KV) {
+    try {
+      const raw = await env.RATE_LIMIT_KV.get(loginRLKey, 'json');
+      const now = Date.now();
+      if (raw && now - raw.windowStart < 60000 && raw.count >= 5) {
+        return new Response(JSON.stringify({ error: '너무 많은 로그인 시도입니다. 1분 후 다시 시도해주세요.' }), { status: 429, headers: { ...headers, 'Retry-After': '60' } });
+      }
+      const updated = (!raw || now - raw.windowStart >= 60000)
+        ? { windowStart: now, count: 1 }
+        : { ...raw, count: raw.count + 1 };
+      await env.RATE_LIMIT_KV.put(loginRLKey, JSON.stringify(updated), { expirationTtl: 120 });
+    } catch { /* KV 장애 시 통과 */ }
+  }
+
+  let body;
+  try { body = await request.json(); } catch {
+    return new Response(JSON.stringify({ error: '잘못된 JSON입니다.' }), { status: 400, headers });
+  }
+
+  const email = (body.email || '').trim().toLowerCase();
+  const password = body.password || '';
+  const generic = '이메일 또는 비밀번호가 올바르지 않습니다.';
+
+  const raw = await env.AUTH_KV.get(`user:${email}`, 'json');
+  if (!raw) return new Response(JSON.stringify({ error: generic }), { status: 401, headers });
+
+  const ok = await verifyPassword(password, raw.passwordHash, raw.passwordSalt);
+  if (!ok) return new Response(JSON.stringify({ error: generic }), { status: 401, headers });
+
+  const accessToken = await signJWT({ sub: email, name: raw.name, isPremium: raw.isPremium || false }, env.AUTH_SECRET, 3600);
+  const refreshToken = crypto.randomUUID();
+  await env.AUTH_KV.put(`rt:${refreshToken}`, JSON.stringify({ userId: email }), { expirationTtl: 30 * 24 * 3600 });
+
+  return new Response(JSON.stringify({ success: true, accessToken, refreshToken, user: { email, name: raw.name, isPremium: raw.isPremium || false } }), { headers });
+}
+
+async function handleAuthMe(request, env, headers) {
+  const user = await getCurrentUser(request, env);
+  if (!user) return new Response(JSON.stringify({ error: '인증이 필요합니다.' }), { status: 401, headers });
+
+  const raw = await env.AUTH_KV.get(`user:${user.sub}`, 'json');
+  if (!raw) return new Response(JSON.stringify({ error: '사용자를 찾을 수 없습니다.' }), { status: 404, headers });
+
+  return new Response(JSON.stringify({ email: raw.email, name: raw.name, isPremium: raw.isPremium || false, createdAt: raw.createdAt }), { headers });
+}
+
+async function handleRefresh(request, env, headers) {
+  if (!env.AUTH_KV || !env.AUTH_SECRET)
+    return new Response(JSON.stringify({ error: '인증 시스템이 준비되지 않았습니다.' }), { status: 503, headers });
+
+  let body;
+  try { body = await request.json(); } catch {
+    return new Response(JSON.stringify({ error: '잘못된 요청입니다.' }), { status: 400, headers });
+  }
+
+  const { refreshToken } = body;
+  if (!refreshToken) return new Response(JSON.stringify({ error: 'refreshToken이 필요합니다.' }), { status: 400, headers });
+
+  const session = await env.AUTH_KV.get(`rt:${refreshToken}`, 'json');
+  if (!session) return new Response(JSON.stringify({ error: '세션이 만료되었습니다.' }), { status: 401, headers });
+
+  const raw = await env.AUTH_KV.get(`user:${session.userId}`, 'json');
+  if (!raw) return new Response(JSON.stringify({ error: '사용자를 찾을 수 없습니다.' }), { status: 404, headers });
+
+  const accessToken = await signJWT({ sub: session.userId, name: raw.name, isPremium: raw.isPremium || false }, env.AUTH_SECRET, 3600);
+  return new Response(JSON.stringify({ success: true, accessToken }), { headers });
+}
+
+async function handleLogout(request, env, headers) {
+  let body = {};
+  try { body = await request.json(); } catch { /* ignore */ }
+  if (body.refreshToken && env.AUTH_KV) {
+    await env.AUTH_KV.delete(`rt:${body.refreshToken}`).catch(() => {});
+  }
+  return new Response(JSON.stringify({ success: true }), { headers });
+}
+
+// ── 토스페이먼츠 결제 확인 (env.TOSS_SECRET_KEY 설정 시 활성화) ──
+
+async function handlePaymentConfirm(request, env, headers) {
+  if (!env.TOSS_SECRET_KEY)
+    return new Response(JSON.stringify({ error: '결제 시스템이 준비되지 않았습니다.' }), { status: 503, headers });
+
+  const user = await getCurrentUser(request, env);
+  if (!user) return new Response(JSON.stringify({ error: '로그인이 필요합니다.' }), { status: 401, headers });
+
+  let body;
+  try { body = await request.json(); } catch {
+    return new Response(JSON.stringify({ error: '잘못된 요청입니다.' }), { status: 400, headers });
+  }
+
+  const { paymentKey, orderId, amount } = body;
+  if (!paymentKey || !orderId || !amount)
+    return new Response(JSON.stringify({ error: 'paymentKey, orderId, amount가 필요합니다.' }), { status: 400, headers });
+
+  // 토스페이먼츠 결제 승인 API 호출
+  const confirmRes = await fetch('https://api.tosspayments.com/v1/payments/confirm', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Basic ${btoa(env.TOSS_SECRET_KEY + ':')}`,
+    },
+    body: JSON.stringify({ paymentKey, orderId, amount }),
+  });
+
+  const confirmData = await confirmRes.json();
+
+  if (!confirmRes.ok) {
+    console.error('[payment/confirm] toss error', confirmData);
+    return new Response(JSON.stringify({ error: confirmData.message || '결제 승인 실패' }), { status: 400, headers });
+  }
+
+  // 결제 성공 → 사용자 프리미엄 업그레이드
+  const raw = await env.AUTH_KV.get(`user:${user.sub}`, 'json');
+  if (raw) {
+    const wasPremium = raw.isPremium;
+    raw.isPremium = true;
+    raw.premiumSince = new Date().toISOString();
+    raw.lastPayment = { orderId, amount, method: confirmData.method, approvedAt: confirmData.approvedAt };
+    await env.AUTH_KV.put(`user:${user.sub}`, JSON.stringify(raw));
+    if (!wasPremium) _incr(env.ANALYSIS_CACHE_KV, 'stats:total:premium').catch(() => {});
+  }
+
+  // 새 액세스 토큰 발급 (isPremium=true 반영)
+  const newAccessToken = await signJWT({ sub: user.sub, name: user.name, isPremium: true }, env.AUTH_SECRET, 3600);
+
+  return new Response(JSON.stringify({
+    success: true,
+    accessToken: newAccessToken,
+    payment: { orderId, amount, method: confirmData.method, approvedAt: confirmData.approvedAt },
+  }), { headers });
+}
+
+// ── 통계 추적 (ANALYSIS_CACHE_KV에 stats: 접두사로 저장) ─────────
+
+function _statDateKey() {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
+async function _incr(kv, key) {
+  if (!kv) return;
+  try {
+    const raw = await kv.get(key, 'text');
+    await kv.put(key, String((parseInt(raw || '0', 10)) + 1), { expirationTtl: 90 * 24 * 3600 });
+  } catch { /* 통계 실패는 무시 */ }
+}
+
+async function recordStats(env, ctx, { isApiCall, isCacheHit }) {
+  if (!env.ANALYSIS_CACHE_KV) return;
+  const dk = _statDateKey();
+  const ops = [
+    _incr(env.ANALYSIS_CACHE_KV, `stats:total:req`),
+    _incr(env.ANALYSIS_CACHE_KV, `stats:d:${dk}:req`),
+  ];
+  if (isCacheHit) {
+    ops.push(_incr(env.ANALYSIS_CACHE_KV, `stats:total:hit`));
+    ops.push(_incr(env.ANALYSIS_CACHE_KV, `stats:d:${dk}:hit`));
+  }
+  if (isApiCall) {
+    ops.push(_incr(env.ANALYSIS_CACHE_KV, `stats:total:api`));
+    ops.push(_incr(env.ANALYSIS_CACHE_KV, `stats:d:${dk}:api`));
+  }
+  ctx.waitUntil(Promise.all(ops));
+}
+
+// ── AI 응답 캐싱 (ANALYSIS_CACHE_KV) ────────────────────────────
+// 개인 분석은 동일 조합(월+일+성별+질문유형)에 대해 항상 같은 내용이 나오므로 캐싱으로 API 비용 절감
+// 커플/가족은 조합이 폭발적으로 많아 캐싱 대상 제외
+
+const CACHE_TTL_SECONDS = 7 * 24 * 3600; // 7일
+const CACHE_PLACEHOLDER_NAME = '고객'; // 캐시 저장 시 사용하는 이름 placeholder
+
+function buildCacheKey(analysisData, questionType) {
+  const t = analysisData.type || 'personal';
+  if (t !== 'personal') return null; // 커플/가족은 캐시 안 함
+  const month = Math.max(1, Math.min(12, Number(analysisData.month) || 1));
+  const day = Math.max(1, Math.min(30, Number(analysisData.day) || 1));
+  const gender = analysisData.gender === 'male' ? 'm' : 'f';
+  return `ac:p:${month}:${day}:${gender}:${questionType || 'basic'}`;
+}
+
+async function getCachedAnalysis(env, key) {
+  if (!env.ANALYSIS_CACHE_KV || !key) return null;
+  try {
+    return await env.ANALYSIS_CACHE_KV.get(key, 'text');
+  } catch {
+    return null;
+  }
+}
+
+async function setCachedAnalysis(env, key, value) {
+  if (!env.ANALYSIS_CACHE_KV || !key) return;
+  try {
+    await env.ANALYSIS_CACHE_KV.put(key, value, { expirationTtl: CACHE_TTL_SECONDS });
+  } catch {
+    // 캐시 저장 실패는 무시 (정상 응답은 이미 반환됨)
+  }
+}
+
+// 캐시용: 이름을 placeholder로 교체한 analysisData 생성
+function toAnonymousData(analysisData) {
+  return { ...analysisData, name: CACHE_PLACEHOLDER_NAME };
+}
+
+// 캐시 응답에서 placeholder 이름을 실제 이름으로 교체
+function restoreNameInResponse(text, realName) {
+  if (!realName || realName === CACHE_PLACEHOLDER_NAME) return text;
+  return text.replace(new RegExp(CACHE_PLACEHOLDER_NAME, 'g'), realName);
+}
+
 // ── OpenAI 호출 ──────────────────────────────────────────────────
 
 async function callOpenAI(env, messages) {
@@ -448,7 +801,7 @@ async function callOpenAI(env, messages) {
 
 // ── 라우터 ───────────────────────────────────────────────────────
 
-async function handleRequest(request, env) {
+async function handleRequest(request, env, ctx) {
   const url = new URL(request.url);
   const path = url.pathname;
 
@@ -468,9 +821,9 @@ async function handleRequest(request, env) {
 
   // Rate limiting (POST 요청만)
   if (request.method === 'POST') {
-    const clientIP = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
-    cleanupRateLimits();
-    if (!checkRateLimit(clientIP)) {
+    // CF-Connecting-IP: Cloudflare가 보장하는 실제 클라이언트 IP (위조 불가)
+    const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
+    if (!await checkRateLimit(env, clientIP)) {
       return new Response(JSON.stringify({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }), {
         status: 429,
         headers: { ...headers, 'Retry-After': '60' },
@@ -519,12 +872,45 @@ async function handleRequest(request, env) {
         return new Response(JSON.stringify({ error: '구성원은 최대 10명까지 지원합니다.' }), { status: 400, headers });
       }
 
-      const userPrompt = generatePrompt(analysisData, questionType);
-      const analysis = await callOpenAI(env, [
+      // 프리미엄 기능 게이팅: detailed 분석은 로그인 + 프리미엄 필요
+      if (questionType === 'detailed') {
+        const user = await getCurrentUser(request, env);
+        if (!user) return new Response(JSON.stringify({ error: '로그인이 필요합니다.', requireLogin: true }), { status: 401, headers });
+        if (!user.isPremium) return new Response(JSON.stringify({ error: '프리미엄 회원만 이용 가능합니다.', requirePremium: true }), { status: 403, headers });
+      }
+
+      const realName = sanitizeUserInput(
+        analysisData.name || (analysisData.person1 && analysisData.person1.name) || '고객'
+      );
+      const cacheKey = buildCacheKey(analysisData, questionType);
+
+      // 캐시 조회 (personal 분석만)
+      const cached = await getCachedAnalysis(env, cacheKey);
+      if (cached) {
+        recordStats(env, ctx, { isApiCall: false, isCacheHit: true });
+        const analysis = restoreNameInResponse(cached, realName);
+        return new Response(JSON.stringify({
+          success: true,
+          analysis,
+          model: 'cache',
+          timestamp: new Date().toISOString(),
+        }), { headers });
+      }
+
+      // 캐시 미스: OpenAI 호출 (개인 분석은 placeholder 이름 사용)
+      const dataForPrompt = cacheKey ? toAnonymousData(analysisData) : analysisData;
+      const userPrompt = generatePrompt(dataForPrompt, questionType);
+      const rawAnalysis = await callOpenAI(env, [
         { role: 'system', content: ANIMORA_SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ]);
 
+      // 캐시 저장 (placeholder 상태로 저장)
+      await setCachedAnalysis(env, cacheKey, rawAnalysis);
+      recordStats(env, ctx, { isApiCall: true, isCacheHit: false });
+
+      // 실제 이름 복원 후 응답
+      const analysis = restoreNameInResponse(rawAnalysis, realName);
       return new Response(JSON.stringify({
         success: true,
         analysis,
@@ -541,8 +927,23 @@ async function handleRequest(request, env) {
     }
   }
 
+  // ── 인증 라우트 ──────────────────────────────────────────────
+  if (path === '/api/auth/register' && request.method === 'POST') return handleRegister(request, env, headers);
+  if (path === '/api/auth/login'    && request.method === 'POST') return handleLogin(request, env, headers);
+  if (path === '/api/auth/me'       && request.method === 'GET')  return handleAuthMe(request, env, headers);
+  if (path === '/api/auth/refresh'  && request.method === 'POST') return handleRefresh(request, env, headers);
+  if (path === '/api/auth/logout'   && request.method === 'POST') return handleLogout(request, env, headers);
+
+  // ── 결제 라우트 ──────────────────────────────────────────────
+  if (path === '/api/payment/confirm' && request.method === 'POST') return handlePaymentConfirm(request, env, headers);
+
   // 맞춤형 질문
   if (path === '/api/custom-question' && request.method === 'POST') {
+    // 맞춤형 질문은 로그인 + 프리미엄 필요
+    const customUser = await getCurrentUser(request, env);
+    if (!customUser) return new Response(JSON.stringify({ error: '로그인이 필요합니다.', requireLogin: true }), { status: 401, headers });
+    if (!customUser.isPremium) return new Response(JSON.stringify({ error: '프리미엄 회원만 이용 가능합니다.', requirePremium: true }), { status: 403, headers });
+
     let body;
     try { body = await request.json(); } catch {
       return new Response(JSON.stringify({ error: '잘못된 JSON 형식입니다.' }), { status: 400, headers });
@@ -579,6 +980,55 @@ async function handleRequest(request, env) {
     }
   }
 
+  // 관리자 통계 (GET /api/admin/stats — ADMIN_SECRET 인증 필요)
+  if (path === '/api/admin/stats' && request.method === 'GET') {
+    const adminSecret = env.ADMIN_SECRET;
+    const authHeader = request.headers.get('Authorization');
+    if (!adminSecret || authHeader !== `Bearer ${adminSecret}`) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers });
+    }
+
+    if (!env.ANALYSIS_CACHE_KV) {
+      return new Response(JSON.stringify({ error: 'Analytics KV not bound' }), { status: 503, headers });
+    }
+
+    // 최근 7일 + 전체 집계
+    const today = new Date();
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today);
+      d.setUTCDate(d.getUTCDate() - (6 - i));
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+    });
+
+    const statKeys = [
+      'stats:total:req', 'stats:total:hit', 'stats:total:api',
+      'stats:total:users', 'stats:total:premium',
+      ...days.flatMap(d => [`stats:d:${d}:req`, `stats:d:${d}:hit`, `stats:d:${d}:api`]),
+    ];
+    const values = await Promise.all(statKeys.map(k => env.ANALYSIS_CACHE_KV.get(k, 'text').catch(() => null)));
+    const stat = {};
+    statKeys.forEach((k, i) => { stat[k] = parseInt(values[i] || '0', 10); });
+
+    const totalReq = stat['stats:total:req'];
+    const totalHit = stat['stats:total:hit'];
+    const totalApi = stat['stats:total:api'];
+    const hitRate = totalReq > 0 ? Math.round((totalHit / totalReq) * 100) : 0;
+    // gpt-4o 대략 추정: 입력 3500 토큰 × $15/1M + 출력 3500 토큰 × $60/1M
+    const estimatedCostUSD = +(totalApi * (3500 * 15 + 3500 * 60) / 1_000_000).toFixed(3);
+
+    return new Response(JSON.stringify({
+      summary: { totalReq, totalHit, totalApi, hitRate, estimatedCostUSD,
+        totalUsers: stat['stats:total:users'],
+        totalPremium: stat['stats:total:premium'] },
+      daily: days.map(d => ({
+        date: d,
+        req: stat[`stats:d:${d}:req`],
+        hit: stat[`stats:d:${d}:hit`],
+        api: stat[`stats:d:${d}:api`],
+      })),
+    }), { headers });
+  }
+
   // 404
   return new Response(JSON.stringify({ error: 'Not Found' }), { status: 404, headers });
 }
@@ -587,6 +1037,6 @@ async function handleRequest(request, env) {
 
 export default {
   async fetch(request, env, ctx) {
-    return handleRequest(request, env);
+    return handleRequest(request, env, ctx);
   },
 };

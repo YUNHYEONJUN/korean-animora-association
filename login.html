@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="아니모라 회원 로그인 - 프리미엄 분석 서비스 이용">
+<title>로그인 / 회원가입 - 한국아니모라협회</title>
+<meta name="theme-color" content="#2c3e89">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #2c3e89;
+  --primary-light: #4a5fc1;
+  --accent: #d4af37;
+  --bg: #f5f7ff;
+  --card-bg: #fff;
+  --text: #1a1a1a;
+  --text-muted: #666;
+  --border: #e0e4f0;
+  --error: #e53e3e;
+  --success: #38a169;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(44,62,137,.10);
+}
+body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+.navbar { background: var(--card-bg); box-shadow: 0 2px 8px rgba(0,0,0,.06); padding: .9rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
+.navbar a { text-decoration: none; color: var(--primary); font-weight: 700; font-size: 1.1rem; }
+.navbar .back { font-size: .85rem; font-weight: 500; color: var(--text-muted); }
+
+.page { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
+.card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 440px; padding: 2.5rem 2rem; }
+.card-logo { text-align: center; margin-bottom: 1.5rem; }
+.card-logo span { font-size: 2.5rem; }
+.card-logo p { font-size: .85rem; color: var(--text-muted); margin-top: .3rem; }
+
+/* 탭 */
+.tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 1.8rem; }
+.tab-btn { flex: 1; background: none; border: none; padding: .65rem; font-size: .95rem; font-family: inherit; font-weight: 500; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color .2s, border-color .2s; }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* 폼 */
+.form-group { margin-bottom: 1.2rem; }
+label { display: block; font-size: .85rem; font-weight: 600; color: var(--text); margin-bottom: .4rem; }
+input[type=email], input[type=password], input[type=text] {
+  width: 100%; padding: .7rem 1rem; border: 1.5px solid var(--border); border-radius: 8px;
+  font-size: .95rem; font-family: inherit; color: var(--text); background: var(--bg);
+  transition: border-color .2s, box-shadow .2s; outline: none;
+}
+input:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(74,95,193,.12); }
+input.error { border-color: var(--error); }
+
+.field-error { color: var(--error); font-size: .78rem; margin-top: .3rem; }
+.form-hint { color: var(--text-muted); font-size: .78rem; margin-top: .3rem; }
+
+.btn-primary { width: 100%; padding: .85rem; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-family: inherit; font-weight: 600; cursor: pointer; transition: background .2s, transform .1s; margin-top: .5rem; }
+.btn-primary:hover { background: var(--primary-light); }
+.btn-primary:active { transform: scale(.98); }
+.btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+
+.divider { display: flex; align-items: center; gap: .7rem; margin: 1.3rem 0; color: var(--text-muted); font-size: .8rem; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.alert { padding: .75rem 1rem; border-radius: 8px; font-size: .88rem; margin-bottom: 1rem; }
+.alert.error { background: #fff5f5; border: 1px solid #fed7d7; color: var(--error); }
+.alert.success { background: #f0fff4; border: 1px solid #9ae6b4; color: var(--success); }
+
+.premium-box { background: linear-gradient(135deg, #fdf6e3, #fff9ed); border: 1px solid #f0d98e; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; }
+.premium-box h4 { font-size: .88rem; color: var(--accent); margin-bottom: .4rem; }
+.premium-box ul { list-style: none; font-size: .82rem; color: #7a6020; }
+.premium-box ul li::before { content: '✓ '; color: var(--accent); }
+
+.redirect-msg { text-align: center; font-size: .83rem; color: var(--text-muted); margin-top: 1rem; }
+.redirect-msg a { color: var(--primary); font-weight: 600; text-decoration: none; }
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a href="index.html">🎴 한국아니모라협회</a>
+  <a href="javascript:history.back()" class="back">← 돌아가기</a>
+</nav>
+
+<div class="page">
+  <div class="card">
+    <div class="card-logo">
+      <span>🎴</span>
+      <p>한국아니모라협회 회원 서비스</p>
+    </div>
+
+    <!-- 이미 로그인된 경우 -->
+    <div id="alreadyLoggedIn" style="display:none; text-align:center;">
+      <p style="font-size:1rem; margin-bottom:1rem;">👋 <strong id="loggedInName"></strong>님, 안녕하세요!</p>
+      <p style="color:var(--text-muted); font-size:.88rem; margin-bottom:1.5rem;" id="premiumStatus"></p>
+      <button class="btn-primary" onclick="AnimoraAuth.logout().then(() => location.reload())">로그아웃</button>
+      <div class="redirect-msg" style="margin-top:1rem;">
+        <a href="analysis.html">← 분석 페이지로 돌아가기</a>
+      </div>
+    </div>
+
+    <!-- 로그인/회원가입 폼 -->
+    <div id="authForms">
+      <div class="tabs">
+        <button class="tab-btn active" id="tabLogin" onclick="switchTab('login')">로그인</button>
+        <button class="tab-btn" id="tabRegister" onclick="switchTab('register')">회원가입</button>
+      </div>
+
+      <div id="alertBox" style="display:none"></div>
+
+      <!-- 로그인 폼 -->
+      <form id="loginForm" autocomplete="on">
+        <div class="form-group">
+          <label for="loginEmail">이메일</label>
+          <input type="email" id="loginEmail" name="email" placeholder="example@email.com" autocomplete="email" required>
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">비밀번호</label>
+          <input type="password" id="loginPassword" name="password" placeholder="비밀번호 입력" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn-primary" id="loginBtn">로그인</button>
+        <div class="redirect-msg">
+          계정이 없으신가요? <a href="javascript:void(0)" onclick="switchTab('register')">회원가입</a>
+        </div>
+      </form>
+
+      <!-- 회원가입 폼 -->
+      <form id="registerForm" style="display:none" autocomplete="on">
+        <div class="premium-box">
+          <h4>✨ 프리미엄 회원 혜택</h4>
+          <ul>
+            <li>무제한 AI 상세 분석</li>
+            <li>맞춤형 질문 (화해법, 선물 추천 등)</li>
+            <li>PDF 다운로드</li>
+            <li>무제한 히스토리 저장</li>
+          </ul>
+        </div>
+        <div class="form-group">
+          <label for="regName">이름 (닉네임)</label>
+          <input type="text" id="regName" name="name" placeholder="홍길동" autocomplete="name" maxlength="50">
+        </div>
+        <div class="form-group">
+          <label for="regEmail">이메일</label>
+          <input type="email" id="regEmail" name="email" placeholder="example@email.com" autocomplete="email" required>
+        </div>
+        <div class="form-group">
+          <label for="regPassword">비밀번호</label>
+          <input type="password" id="regPassword" name="password" placeholder="8자 이상" autocomplete="new-password" required minlength="8">
+          <p class="form-hint">8자 이상, 영문/숫자 조합 권장</p>
+        </div>
+        <button type="submit" class="btn-primary" id="registerBtn">회원가입</button>
+        <div class="redirect-msg">
+          이미 계정이 있으신가요? <a href="javascript:void(0)" onclick="switchTab('login')">로그인</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="auth-service.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const returnUrl = params.get('return') || 'analysis.html';
+
+function switchTab(tab) {
+  document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+  document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+  document.getElementById('loginForm').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('registerForm').style.display = tab === 'register' ? '' : 'none';
+  hideAlert();
+}
+
+function showAlert(msg, type = 'error') {
+  const box = document.getElementById('alertBox');
+  box.className = `alert ${type}`;
+  box.textContent = msg;
+  box.style.display = '';
+}
+function hideAlert() { document.getElementById('alertBox').style.display = 'none'; }
+
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  btn.textContent = loading ? '처리 중…' : (btnId === 'loginBtn' ? '로그인' : '회원가입');
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideAlert();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  setLoading('loginBtn', true);
+  try {
+    await AnimoraAuth.login(email, password);
+    showAlert('로그인 성공! 잠시 후 이동합니다.', 'success');
+    setTimeout(() => location.href = returnUrl, 800);
+  } catch (err) {
+    showAlert(err.message || '로그인 실패');
+  } finally {
+    setLoading('loginBtn', false);
+  }
+});
+
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideAlert();
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  if (password.length < 8) { showAlert('비밀번호는 8자 이상이어야 합니다.'); return; }
+  setLoading('registerBtn', true);
+  try {
+    await AnimoraAuth.register(email, password, name);
+    showAlert('가입 완료! 잠시 후 이동합니다.', 'success');
+    setTimeout(() => location.href = returnUrl, 800);
+  } catch (err) {
+    showAlert(err.message || '회원가입 실패');
+  } finally {
+    setLoading('registerBtn', false);
+  }
+});
+
+// 이미 로그인된 경우 처리
+window.addEventListener('DOMContentLoaded', () => {
+  if (AnimoraAuth.isLoggedIn()) {
+    const user = AnimoraAuth.getCachedUser();
+    document.getElementById('authForms').style.display = 'none';
+    document.getElementById('alreadyLoggedIn').style.display = '';
+    document.getElementById('loggedInName').textContent = user?.name || user?.email || '회원';
+    document.getElementById('premiumStatus').textContent = AnimoraAuth.isPremium()
+      ? '✨ 프리미엄 회원입니다.' : '무료 회원입니다. 프리미엄으로 업그레이드하세요.';
+  }
+});
+</script>
+</body>
+</html>

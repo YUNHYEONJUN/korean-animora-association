@@ -13,7 +13,7 @@
     <title>아니모라 성격 분석 & 궁합 해석 - 한국아니모라협회</title>
     <link rel="canonical" href="https://yunhyeonjun.github.io/korean-animora-association/analysis.html">
     <meta name="theme-color" content="#2c3e89">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://yunhyeonjun.github.io; connect-src 'self' https://*.workers.dev https://api.openai.com https://www.google-analytics.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://t1.kakaocdn.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com https://yunhyeonjun.github.io https://k.kakaocdn.net; connect-src 'self' https://*.workers.dev https://api.openai.com https://www.google-analytics.com https://www.googletagmanager.com https://kauth.kakao.com https://kapi.kakao.com https://api.tosspayments.com;">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232c3e89'/><text x='50' y='62' font-size='48' font-weight='bold' fill='%23d4af37' text-anchor='middle' font-family='serif'>A</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,12 +36,28 @@
     <script src="error-monitor.js"></script>
     <script src="sanitize.js" defer></script>
     <script src="config.js" defer></script>
+    <script src="auth-service.js" defer></script>
     <script src="lunar-converter.js" defer></script>
     <script src="api-service.js" defer></script>
     <script src="storage-service.js" defer></script>
     <script src="premium-features.js" defer></script>
     <script src="animora-data.js" defer></script>
     <script src="analysis.js" defer></script>
+    <!-- Kakao SDK: appKey 설정 후 자동 활성화 -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var cfg = (typeof ANIMORA_CONFIG !== 'undefined') ? ANIMORA_CONFIG : null;
+        if (cfg && cfg.kakao && cfg.kakao.enabled && cfg.kakao.appKey) {
+            var s = document.createElement('script');
+            s.src = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js';
+            s.crossOrigin = 'anonymous';
+            s.onload = function() {
+                if (window.Kakao && !Kakao.isInitialized()) Kakao.init(cfg.kakao.appKey);
+            };
+            document.head.appendChild(s);
+        }
+    });
+    </script>
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -68,6 +84,7 @@
                 <li><a href="analysis.html" class="active">분석하기</a></li>
                 <li><a href="education.html">교육</a></li>
                 <li><a href="index.html#contact">문의</a></li>
+                <li id="navAuthItem"><a href="login.html" id="navAuthLink">로그인</a></li>
             </ul>
             <div class="hamburger" aria-label="메뉴" role="button" tabindex="0" aria-expanded="false">
                 <span></span>
@@ -76,6 +93,26 @@
             </div>
         </div>
     </nav>
+
+    <script>
+    // 네비게이션 로그인 상태 반영
+    document.addEventListener('DOMContentLoaded', function() {
+        function updateNav() {
+            var link = document.getElementById('navAuthLink');
+            if (!link) return;
+            if (typeof AnimoraAuth !== 'undefined' && AnimoraAuth.isLoggedIn()) {
+                var user = AnimoraAuth.getCachedUser();
+                link.textContent = (user && user.name ? user.name : '내 계정') + (AnimoraAuth.isPremium() ? ' ✨' : '');
+                link.href = 'login.html';
+            } else {
+                link.textContent = '로그인';
+                link.href = 'login.html?return=' + encodeURIComponent(location.href);
+            }
+        }
+        updateNav();
+        if (typeof AnimoraAuth !== 'undefined') AnimoraAuth.onChange(updateNav);
+    });
+    </script>
 
     <!-- 브레드크럼 -->
     <nav class="breadcrumb" aria-label="현재 위치">
@@ -355,14 +392,7 @@
     </footer>
 
     <button id="scroll-top" class="scroll-top-btn" aria-label="맨 위로 이동">↑</button>
-    <script src="script.js"></script>
-    <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/korean-animora-association/sw.js')
-                .catch(() => {});
-        });
-    }
-    </script>
+    <script src="script.js" defer></script>
+    <script src="init.js" defer></script>
 </body>
 </html>

@@ -1,28 +1,42 @@
 /**
  * Service Worker - 아니모라 PWA 캐싱
+ * 버전 업 방법: CACHE_VERSION 숫자를 올리면 다음 방문 시 캐시 자동 갱신
  */
-const CACHE_NAME = 'animora-v2';
+const CACHE_VERSION = 4;
+const CACHE_NAME = `animora-v${CACHE_VERSION}`;
+// GitHub Pages 경로 또는 루트 경로 자동 감지
+const BASE = (() => {
+    try {
+        const p = new URL(self.location).pathname;
+        // /korean-animora-association/sw.js 형태면 해당 prefix 사용
+        const m = p.match(/^(\/[^/]+)\/sw\.js$/);
+        return m ? m[1] : '';
+    } catch { return ''; }
+})();
 const STATIC_ASSETS = [
-    '/korean-animora-association/',
-    '/korean-animora-association/index.html',
-    '/korean-animora-association/analysis.html',
-    '/korean-animora-association/education.html',
-    '/korean-animora-association/styles.css',
-    '/korean-animora-association/analysis.css',
-    '/korean-animora-association/education.css',
-    '/korean-animora-association/error-monitor.js',
-    '/korean-animora-association/sanitize.js',
-    '/korean-animora-association/config.js',
-    '/korean-animora-association/lunar-converter.js',
-    '/korean-animora-association/animora-data.js',
-    '/korean-animora-association/animal-icons.js',
-    '/korean-animora-association/script.js',
-    '/korean-animora-association/homepage-analysis.js',
-    '/korean-animora-association/api-service.js',
-    '/korean-animora-association/storage-service.js',
-    '/korean-animora-association/premium-features.js',
-    '/korean-animora-association/analysis.js',
-    '/korean-animora-association/manifest.json'
+    `${BASE}/`,
+    `${BASE}/index.html`,
+    `${BASE}/analysis.html`,
+    `${BASE}/education.html`,
+    `${BASE}/login.html`,
+    `${BASE}/styles.css`,
+    `${BASE}/analysis.css`,
+    `${BASE}/education.css`,
+    `${BASE}/error-monitor.js`,
+    `${BASE}/sanitize.js`,
+    `${BASE}/config.js`,
+    `${BASE}/init.js`,
+    `${BASE}/auth-service.js`,
+    `${BASE}/lunar-converter.js`,
+    `${BASE}/animora-data.js`,
+    `${BASE}/animal-icons.js`,
+    `${BASE}/script.js`,
+    `${BASE}/homepage-analysis.js`,
+    `${BASE}/api-service.js`,
+    `${BASE}/storage-service.js`,
+    `${BASE}/premium-features.js`,
+    `${BASE}/analysis.js`,
+    `${BASE}/manifest.json`,
 ];
 
 // Install: 정적 파일 프리캐싱
@@ -106,7 +120,7 @@ self.addEventListener('fetch', (event) => {
                 if (cached) return cached;
                 // HTML 페이지 요청의 경우 캐시된 index.html로 폴백
                 if (event.request.mode === 'navigate') {
-                    return caches.match('/korean-animora-association/index.html');
+                    return caches.match(`${BASE}/index.html`);
                 }
                 return new Response('오프라인 상태입니다.', { status: 503 });
             });

@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initTypeTabs();
     initForms();
     populateDaySelects();
+    _handleUrlParams(); // URL 파라미터로 공유된 링크 자동 실행
 });
 
 // 탭 초기화
@@ -694,26 +695,41 @@ function downloadAnalysisPDF() {
     premiumFeatures.downloadPDF(window.currentAnalysisData, resultHTML);
 }
 
-// 공유하기
+// 공유하기 — Web Share API 지원 기기는 네이티브 공유, 아니면 모달
 function shareAnalysis() {
-    // 기존 모달 제거 (중복 방지)
+    if (!window.currentAnalysisData) return;
+
+    // 모바일 등 Web Share API 지원 시 바로 네이티브 공유
+    if (navigator.share) {
+        premiumFeatures.share('native', window.currentAnalysisData);
+        return;
+    }
+
+    // 미지원 기기: 모달
     closeShareModal();
-    const shareOptions = `
-        <div class="share-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">
-            <div class="share-content" style="background: white; padding: 30px; border-radius: 20px; max-width: 400px;">
-                <h3 style="margin-bottom: 20px; color: #2c3e89;">🔗 분석 결과 공유하기</h3>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <button onclick="shareVia('kakao')" style="padding: 12px; background: #FEE500; color: #3C1E1E; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">카카오톡 공유</button>
-                    <button onclick="shareVia('facebook')" style="padding: 12px; background: #1877F2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">페이스북 공유</button>
-                    <button onclick="shareVia('twitter')" style="padding: 12px; background: #1DA1F2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">트위터 공유</button>
-                    <button onclick="shareVia('copy')" style="padding: 12px; background: #4a5fc1; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">링크 복사</button>
-                    <button onclick="closeShareModal()" style="padding: 12px; background: #ddd; color: #333; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px;">닫기</button>
-                </div>
+
+    // 공유 URL 미리 생성해서 표시
+    const shareUrl = premiumFeatures.buildShareUrl(window.currentAnalysisData);
+
+    const modal = document.createElement('div');
+    modal.className = 'share-modal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:10000;';
+    modal.innerHTML = `
+        <div style="background:white;padding:30px;border-radius:20px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+            <h3 style="margin-bottom:8px;color:#2c3e89;">🔗 결과 공유하기</h3>
+            <p style="font-size:.85rem;color:#888;margin-bottom:20px;">공유 링크를 열면 동일한 분석이 자동 실행됩니다</p>
+            <div style="background:#f4f6ff;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:.8rem;color:#555;word-break:break-all;">${AnimoraSanitizer.escapeHTML(shareUrl)}</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <button onclick="shareVia('kakao')" style="padding:13px;background:#FEE500;color:#3C1E1E;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:1rem;">💬 카카오톡으로 공유</button>
+                <button onclick="shareVia('twitter')" style="padding:13px;background:#1DA1F2;color:white;border:none;border-radius:10px;cursor:pointer;font-weight:600;">𝕏 트위터/X로 공유</button>
+                <button onclick="shareVia('facebook')" style="padding:13px;background:#1877F2;color:white;border:none;border-radius:10px;cursor:pointer;font-weight:600;">📘 페이스북으로 공유</button>
+                <button onclick="shareVia('copy')" style="padding:13px;background:#2c3e89;color:white;border:none;border-radius:10px;cursor:pointer;font-weight:600;">📋 링크 복사</button>
+                <button onclick="closeShareModal()" style="padding:11px;background:#eee;color:#555;border:none;border-radius:10px;cursor:pointer;font-weight:600;margin-top:4px;">닫기</button>
             </div>
         </div>
     `;
-    
-    document.body.insertAdjacentHTML('beforeend', shareOptions);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeShareModal(); });
+    document.body.appendChild(modal);
 }
 
 function shareVia(platform) {
@@ -725,15 +741,80 @@ function shareVia(platform) {
 
 function closeShareModal() {
     const modal = document.querySelector('.share-modal');
-    if (modal) {
-        modal.remove();
+    if (modal) modal.remove();
+}
+
+// ── URL 파라미터 딥링크 처리 ────────────────────────────────────
+// 공유받은 링크 → 자동으로 폼 채움 + 분석 실행
+function _handleUrlParams() {
+    const p = new URLSearchParams(window.location.search);
+    const type = p.get('t');
+    if (!type) return;
+
+    if (type === 'p') {
+        const month = parseInt(p.get('m'), 10);
+        const day   = parseInt(p.get('d'), 10);
+        const g     = p.get('g') === 'm' ? 'male' : 'female';
+        const name  = p.get('n') || '';
+        if (!month || !day || month < 1 || month > 12 || day < 1 || day > 30) return;
+
+        switchAnalysisType('personal');
+        _setSelectValue('personal-month', month);
+        _setSelectValue('personal-day', day);
+        _setSelectValue('personal-gender', g);
+        const nameEl = document.getElementById('personal-name');
+        if (nameEl) nameEl.value = name;
+        // 약간의 지연 후 자동 제출 (폼 렌더링 완료 대기)
+        setTimeout(() => {
+            const form = document.getElementById('personalForm');
+            if (form) form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        }, 150);
+
+    } else if (type === 'c') {
+        const m1 = parseInt(p.get('m1'), 10), d1 = parseInt(p.get('d1'), 10);
+        const m2 = parseInt(p.get('m2'), 10), d2 = parseInt(p.get('d2'), 10);
+        if (!m1 || !d1 || !m2 || !d2) return;
+
+        switchAnalysisType('couple');
+        _setSelectValue('couple-month1', m1); _setSelectValue('couple-day1', d1);
+        _setSelectValue('couple-gender1', p.get('g1') === 'm' ? 'male' : 'female');
+        const n1 = document.getElementById('couple-name1');
+        if (n1) n1.value = p.get('n1') || '';
+
+        _setSelectValue('couple-month2', m2); _setSelectValue('couple-day2', d2);
+        _setSelectValue('couple-gender2', p.get('g2') === 'm' ? 'male' : 'female');
+        const n2 = document.getElementById('couple-name2');
+        if (n2) n2.value = p.get('n2') || '';
+
+        setTimeout(() => {
+            const form = document.getElementById('coupleForm');
+            if (form) form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        }, 150);
     }
+}
+
+function _setSelectValue(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.value = String(value);
 }
 
 // AI 상세 분석 요청
 async function requestAIAnalysis() {
-    if (!window.currentAnalysisData) {
-        return;
+    if (!window.currentAnalysisData) return;
+
+    // 로그인/프리미엄 확인
+    if (typeof AnimoraAuth !== 'undefined') {
+        if (!AnimoraAuth.isLoggedIn()) {
+            const returnUrl = encodeURIComponent(location.href);
+            if (confirm('AI 상세 분석은 회원 로그인이 필요합니다.\n로그인 페이지로 이동할까요?')) {
+                location.href = `login.html?return=${returnUrl}`;
+            }
+            return;
+        }
+        if (!AnimoraAuth.isPremium()) {
+            alert('AI 상세 분석은 프리미엄 회원 전용 기능입니다.\n결제 후 이용해 주세요.');
+            return;
+        }
     }
 
     // 로딩 표시

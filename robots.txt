@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /korean-animora-association/admin.html
+Disallow: /korean-animora-association/test_api.sh
+Disallow: /korean-animora-association/test_api_direct.html
 
 Sitemap: https://yunhyeonjun.github.io/korean-animora-association/sitemap.xml

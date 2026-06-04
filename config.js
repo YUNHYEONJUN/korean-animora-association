@@ -3,8 +3,13 @@
  * API 키 및 프리미엄 기능 설정
  */
 
-// 환경 감지: GitHub Pages = production, localhost = development
-const ANIMORA_ENV = (typeof location !== 'undefined' && location.hostname.endsWith('github.io')) ? 'production' : 'development';
+// 환경 감지: localhost/127.0.0.1/192.168.x.x = development, 그 외 모든 도메인(github.io·animora.kr 등) = production
+const ANIMORA_ENV = (() => {
+    if (typeof location === 'undefined') return 'development';
+    const h = location.hostname;
+    if (!h || h === 'localhost' || h === '127.0.0.1' || /^192\.168\.\d+\.\d+$/.test(h)) return 'development';
+    return 'production';
+})();
 
 const ANIMORA_CONFIG = {
     env: ANIMORA_ENV,
@@ -324,10 +329,25 @@ const ANIMORA_CONFIG = {
         maxPremiumHistory: -1       // 프리미엄 사용자 무제한
     },
 
+    // 토스페이먼츠 결제 설정
+    // 승인 후: tossClientKey에 클라이언트 키 입력, enabled: true 변경
+    // wrangler secret put TOSS_SECRET_KEY 로 서버 시크릿 등록 필요
+    payment: {
+        enabled: false,
+        tossClientKey: '', // 예: 'test_ck_...' 또는 'live_ck_...'
+    },
+
+    // 카카오 공유 설정 (Kakao SDK)
+    // kakao.com/developers 에서 JavaScript 키 발급 후 입력
+    kakao: {
+        appKey: '', // 예: 'abcdef1234567890abcdef1234567890'
+        enabled: false, // appKey 입력 후 true로 변경
+    },
+
     // Google Analytics 설정 (GA4 측정 ID 입력 시 자동 활성화)
     analytics: {
-        gaId: '', // 예: 'G-XXXXXXXXXX'
-        enabled: false // gaId 입력 후 true로 변경
+        gaId: 'G-9MJY0G8V6E',
+        enabled: true
     },
 
     // A/B 테스트 설정 (실험 추가 시 여기에 정의)

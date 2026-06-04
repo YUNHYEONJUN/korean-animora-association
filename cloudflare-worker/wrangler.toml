@@ -2,7 +2,27 @@ name = "animora-api"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
 
-# 환경 변수 (비밀 키는 `npx wrangler secret put OPENAI_API_KEY`로 설정)
+# 비밀 키 설정: npx wrangler secret put OPENAI_API_KEY
 [vars]
 OPENAI_MODEL = "gpt-4o"
 ALLOWED_ORIGINS = "https://yunhyeonjun.github.io"
+# 커스텀 도메인 추가 시 쉼표 구분: "https://yunhyeonjun.github.io,https://animora.kr"
+ALLOW_LOCALHOST = "false"
+# 로컬 개발 시에만 "true"로 변경
+
+# ── KV 네임스페이스 설정 ─────────────────────────────────────────
+
+# 1. Rate Limit KV (분산 Rate Limiting — 동일 IP 다중 isolate 보호)
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "31211ccaf5944661946a8b86ec2e9174"
+
+# 2. Analysis Cache KV (AI 응답 캐싱 — 동일 조합 재사용으로 API 비용 절감)
+[[kv_namespaces]]
+binding = "ANALYSIS_CACHE_KV"
+id = "db548558ceca43efae029da6b17ddbf6"
+
+# 3. Auth KV (회원 계정 + 리프레시 토큰 저장)
+[[kv_namespaces]]
+binding = "AUTH_KV"
+id = "5b8727266fa94f829e8253c0e8c8b4fd"

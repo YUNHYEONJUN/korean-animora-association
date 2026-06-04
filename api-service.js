@@ -6,32 +6,44 @@
 class AnimoraAPIService {
     constructor() {
         this.config = ANIMORA_CONFIG;
-        this.isPremiumUser = false; // 실제로는 사용자 인증 시스템에서 관리
         this._pendingRequests = new Map();
+        // AnimoraAuth 준비되면 구독
+        if (typeof AnimoraAuth !== 'undefined') {
+            AnimoraAuth.onChange(() => { /* 상태 변경 시 자동 반영 */ });
+        }
+    }
+
+    get isPremiumUser() {
+        return typeof AnimoraAuth !== 'undefined' ? AnimoraAuth.isPremium() : false;
     }
 
     /**
-     * 재시도 로직이 포함된 fetch 래퍼
-     * @param {string} url - 요청 URL
-     * @param {Object} options - fetch 옵션
-     * @param {number} retries - 최대 재시도 횟수
-     * @returns {Promise<Response>}
+     * 재시도 로직이 포함된 fetch 래퍼 (JWT 자동 주입)
      */
     async _fetchWithRetry(url, options, retries = 2) {
+        // Authorization 헤더 자동 주입
+        let token = null;
+        if (typeof AnimoraAuth !== 'undefined') {
+            token = await AnimoraAuth.ensureValidToken().catch(() => null);
+        }
+        const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+        const mergedOptions = {
+            ...options,
+            headers: { ...(options.headers || {}), ...authHeaders },
+        };
+
         for (let attempt = 0; attempt <= retries; attempt++) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000);
             try {
-                const response = await fetch(url, { ...options, signal: controller.signal });
+                const response = await fetch(url, { ...mergedOptions, signal: controller.signal });
                 clearTimeout(timeoutId);
                 if (response.ok || attempt === retries) return response;
-                // 서버 오류(5xx)만 재시도
                 if (response.status < 500) return response;
             } catch (err) {
                 clearTimeout(timeoutId);
                 if (attempt === retries) throw err;
             }
-            // 지수 백오프: 1초, 2초
             await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
         }
     }
@@ -179,18 +191,45 @@ class AnimoraAPIService {
     }
     
     /**
-     * 결제 처리 (향후 구현)
-     * @param {Object} paymentData - 결제 정보
-     * @returns {Promise<Object>} 결제 결과
+     * 토스페이먼츠 결제 확인
+     * 클라이언트에서 토스 SDK로 결제 위젯을 띄운 뒤 성공 콜백으로 받은 값을 전달
+     * @param {string} paymentKey - 토스에서 반환한 paymentKey
+     * @param {string} orderId    - 주문 ID
+     * @param {number} amount     - 결제 금액
      */
-    async processPayment(paymentData) {
-        // 실제로는 PG사 연동 (토스페이먼츠, 카카오페이 등)
-        
-        return {
-            success: false,
-            message: '결제 시스템은 곧 오픈됩니다.',
-            mockMode: true
-        };
+    async processPayment({ paymentKey, orderId, amount }) {
+        if (!paymentKey || !orderId || !amount) throw new Error('결제 정보가 부족합니다.');
+        if (typeof AnimoraAuth === 'undefined' || !AnimoraAuth.isLoggedIn()) {
+            throw new Error('결제하려면 로그인이 필요합니다.');
+        }
+        return AnimoraAuth.confirmPayment(paymentKey, orderId, amount);
+    }
+
+    /**
+     * 토스페이먼츠 결제 위젯 초기화
+     * ANIMORA_CONFIG.payment.tossClientKey 설정 후 사용
+     */
+    initTossPayment(amount, orderId, orderName) {
+        const clientKey = this.config.payment && this.config.payment.tossClientKey;
+        if (!clientKey) {
+            console.warn('토스페이먼츠 클라이언트 키가 설정되지 않았습니다. (config.payment.tossClientKey)');
+            return null;
+        }
+        // TossPayments SDK가 로드된 경우
+        if (typeof TossPayments === 'undefined') {
+            console.warn('토스페이먼츠 SDK가 로드되지 않았습니다.');
+            return null;
+        }
+        const toss = TossPayments(clientKey);
+        return toss.requestPayment('카드', {
+            amount,
+            orderId,
+            orderName,
+            customerName: AnimoraAuth.getCachedUser()?.name || '고객',
+            customerEmail: AnimoraAuth.getCachedUser()?.email || '',
+            successUrl: `${location.origin}${location.pathname}?payment=success`,
+            failUrl: `${location.origin}${location.pathname}?payment=fail`,
+        });
     }
     
     /**

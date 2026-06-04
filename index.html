@@ -14,7 +14,7 @@
     <title>한국아니모라협회 - Korean Animora Association</title>
     <link rel="canonical" href="https://yunhyeonjun.github.io/korean-animora-association/">
     <meta name="theme-color" content="#2c3e89">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://yunhyeonjun.github.io; connect-src 'self' https://*.workers.dev https://api.openai.com https://www.google-analytics.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://yunhyeonjun.github.io; connect-src 'self' https://*.workers.dev https://api.openai.com https://www.google-analytics.com https://www.googletagmanager.com;">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232c3e89'/><text x='50' y='62' font-size='48' font-weight='bold' fill='%23d4af37' text-anchor='middle' font-family='serif'>A</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,6 +34,25 @@
     .hamburger{display:none}
     </style>
     <link rel="stylesheet" href="styles.css">
+    <script src="config.js" defer></script>
+    <script src="auth-service.js" defer></script>
+    <script defer>
+    document.addEventListener('DOMContentLoaded', function() {
+        function updateNav() {
+            var link = document.getElementById('navAuthLink');
+            if (!link) return;
+            if (typeof AnimoraAuth !== 'undefined' && AnimoraAuth.isLoggedIn()) {
+                var user = AnimoraAuth.getCachedUser();
+                link.textContent = (user && user.name ? user.name : '내 계정') + (AnimoraAuth.isPremium() ? ' ✨' : '');
+                link.href = 'login.html';
+            } else {
+                link.textContent = '로그인';
+            }
+        }
+        updateNav();
+        if (typeof AnimoraAuth !== 'undefined') AnimoraAuth.onChange(updateNav);
+    });
+    </script>
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -41,7 +60,7 @@
         "name": "한국아니모라협회",
         "alternateName": "Korean Animora Association",
         "url": "https://yunhyeonjun.github.io/korean-animora-association/",
-        "logo": "https://yunhyeonjun.github.io/korean-animora-association/og-image.png",
+        "logo": "https://yunhyeonjun.github.io/korean-animora-association/logo-official.png",
         "description": "음력 생일로 풀어보는 360가지 인생 유형, 내면의 동물과 나라로 이해하는 새로운 심리 해석",
         "founder": {
             "@type": "Person",
@@ -108,6 +127,7 @@
                 <li><a href="analysis.html">분석하기</a></li>
                 <li><a href="education.html">교육</a></li>
                 <li><a href="#contact">문의</a></li>
+                <li><a href="login.html" id="navAuthLink">로그인</a></li>
             </ul>
             <div class="hamburger" aria-label="메뉴" role="button" tabindex="0" aria-expanded="false">
                 <span></span>
@@ -591,32 +611,12 @@
     <button id="scroll-top" class="scroll-top-btn" aria-label="맨 위로 이동">↑</button>
     <script src="error-monitor.js"></script>
     <script src="config.js"></script>
-    <script>
-    // Google Analytics 조건부 로드
-    if (ANIMORA_CONFIG.analytics.enabled && ANIMORA_CONFIG.analytics.gaId) {
-        const s = document.createElement('script');
-        s.async = true;
-        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + ANIMORA_CONFIG.analytics.gaId;
-        document.head.appendChild(s);
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', ANIMORA_CONFIG.analytics.gaId);
-    }
-    </script>
     <script src="sanitize.js"></script>
     <script src="lunar-converter.js"></script>
     <script src="animora-data.js"></script>
     <script src="animal-icons.js"></script>
     <script src="script.js"></script>
     <script src="homepage-analysis.js"></script>
-    <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/korean-animora-association/sw.js')
-                .catch(() => {});
-        });
-    }
-    </script>
+    <script src="init.js"></script>
 </body>
 </html>

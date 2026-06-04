@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>아니모라 관리자 대시보드</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+  .header { background: #1e293b; border-bottom: 1px solid #334155; padding: 1rem 1.5rem; display: flex; align-items: center; gap: 0.75rem; }
+  .header h1 { font-size: 1.1rem; font-weight: 600; color: #f1f5f9; }
+  .header .badge { background: #7c3aed; color: #fff; font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 999px; }
+  .main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+
+  /* 로그인 */
+  .login-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 2rem; max-width: 400px; margin: 4rem auto; }
+  .login-card h2 { font-size: 1rem; margin-bottom: 1rem; color: #94a3b8; }
+  .input-group { display: flex; gap: 0.5rem; }
+  .input-group input { flex: 1; background: #0f172a; border: 1px solid #475569; color: #e2e8f0; padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.9rem; }
+  .btn { background: #7c3aed; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; white-space: nowrap; }
+  .btn:hover { background: #6d28d9; }
+  .error-msg { color: #f87171; font-size: 0.8rem; margin-top: 0.5rem; }
+
+  /* 카드 그리드 */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 1.2rem; }
+  .card .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+  .card .value { font-size: 1.8rem; font-weight: 700; color: #f1f5f9; }
+  .card .sub { font-size: 0.75rem; color: #94a3b8; margin-top: 0.2rem; }
+  .card.highlight .value { color: #a78bfa; }
+
+  /* 테이블 */
+  .section { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 1.2rem; margin-bottom: 1.5rem; }
+  .section h3 { font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { text-align: left; color: #64748b; font-weight: 500; padding: 0.4rem 0.6rem; border-bottom: 1px solid #334155; }
+  td { padding: 0.5rem 0.6rem; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+  tr:last-child td { border-bottom: none; }
+
+  /* 바 차트 */
+  .bar-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; }
+  .bar-label { font-size: 0.75rem; color: #94a3b8; width: 72px; flex-shrink: 0; text-align: right; }
+  .bar-track { flex: 1; background: #0f172a; border-radius: 4px; height: 20px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 0.4rem; font-size: 0.7rem; color: #fff; transition: width 0.6s ease; min-width: 2px; }
+  .bar-fill.req  { background: #3b82f6; }
+  .bar-fill.hit  { background: #10b981; }
+  .bar-fill.api  { background: #f59e0b; }
+
+  .legend { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; color: #94a3b8; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  .refresh-btn { background: transparent; border: 1px solid #475569; color: #94a3b8; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; float: right; }
+  .refresh-btn:hover { border-color: #7c3aed; color: #a78bfa; }
+  .loading { color: #64748b; font-size: 0.9rem; text-align: center; padding: 2rem; }
+  .logout { background: transparent; border: none; color: #64748b; cursor: pointer; font-size: 0.8rem; margin-left: auto; }
+  .logout:hover { color: #e2e8f0; }
+  .updated-at { font-size: 0.72rem; color: #475569; margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>🎴</div>
+  <h1>아니모라 관리자</h1>
+  <span class="badge">ADMIN</span>
+  <button class="logout" id="logoutBtn" style="display:none">로그아웃</button>
+</div>
+
+<div class="main">
+  <!-- 로그인 -->
+  <div class="login-card" id="loginSection">
+    <h2>관리자 키를 입력하세요</h2>
+    <div class="input-group">
+      <input type="password" id="secretInput" placeholder="Bearer 토큰" autocomplete="off">
+      <button class="btn" id="loginBtn">입장</button>
+    </div>
+    <div class="error-msg" id="loginError"></div>
+  </div>
+
+  <!-- 대시보드 -->
+  <div id="dashboardSection" style="display:none">
+    <div class="updated-at" id="updatedAt"></div>
+    <div class="cards" id="cards"></div>
+    <div class="section">
+      <h3>최근 7일 추이 <button class="refresh-btn" id="refreshBtn">새로고침</button></h3>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span>전체 요청</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#10b981"></span>캐시 히트</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>API 호출</span>
+      </div>
+      <div id="barChart"></div>
+    </div>
+    <div class="section">
+      <h3>일별 상세</h3>
+      <table>
+        <thead><tr><th>날짜</th><th>요청</th><th>캐시히트</th><th>API호출</th><th>캐시율</th></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="loading" id="loadingMsg" style="display:none">데이터 불러오는 중…</div>
+</div>
+
+<script>
+const API = 'https://animora-api.yoonhj79.workers.dev/api/admin/stats';
+const STORAGE_KEY = 'animora_admin_secret';
+
+let secret = localStorage.getItem(STORAGE_KEY) || '';
+
+function fmt(n) { return n.toLocaleString(); }
+function pct(a, b) { return b > 0 ? Math.round(a / b * 100) : 0; }
+
+async function fetchStats() {
+  const res = await fetch(API, { headers: { Authorization: `Bearer ${secret}` } });
+  if (res.status === 401) throw new Error('unauthorized');
+  if (!res.ok) throw new Error('fetch_failed');
+  return res.json();
+}
+
+function renderDashboard(data) {
+  const s = data.summary;
+
+  document.getElementById('updatedAt').textContent = `마지막 갱신: ${new Date().toLocaleString('ko-KR')}`;
+
+  // 요약 카드
+  document.getElementById('cards').innerHTML = `
+    <div class="card"><div class="label">전체 요청</div><div class="value">${fmt(s.totalReq)}</div></div>
+    <div class="card highlight"><div class="label">캐시 히트율</div><div class="value">${s.hitRate}%</div><div class="sub">${fmt(s.totalHit)} 히트 / ${fmt(s.totalReq)} 요청</div></div>
+    <div class="card"><div class="label">API 호출</div><div class="value">${fmt(s.totalApi)}</div></div>
+    <div class="card"><div class="label">예상 API 비용</div><div class="value">$${s.estimatedCostUSD}</div><div class="sub">gpt-4o 추정 (USD)</div></div>
+    <div class="card"><div class="label">가입 회원</div><div class="value">${fmt(s.totalUsers || 0)}</div></div>
+    <div class="card highlight"><div class="label">프리미엄 회원</div><div class="value">${fmt(s.totalPremium || 0)}</div><div class="sub">${s.totalUsers ? Math.round((s.totalPremium||0)/s.totalUsers*100) : 0}% 전환율</div></div>
+  `;
+
+  // 바 차트
+  const maxReq = Math.max(...data.daily.map(d => d.req), 1);
+  document.getElementById('barChart').innerHTML = data.daily.map(d => {
+    const rw = Math.round(d.req / maxReq * 100);
+    const hw = Math.round(d.hit / maxReq * 100);
+    const aw = Math.round(d.api / maxReq * 100);
+    return `
+      <div class="bar-row"><span class="bar-label">${d.date.slice(5)}</span><div class="bar-track"><div class="bar-fill req" style="width:${rw}%">${d.req > 0 ? d.req : ''}</div></div></div>
+      <div class="bar-row"><span class="bar-label"></span><div class="bar-track"><div class="bar-fill hit" style="width:${hw}%">${d.hit > 0 ? d.hit : ''}</div></div></div>
+      <div class="bar-row" style="margin-bottom:0.9rem"><span class="bar-label"></span><div class="bar-track"><div class="bar-fill api" style="width:${aw}%">${d.api > 0 ? d.api : ''}</div></div></div>
+    `;
+  }).join('');
+
+  // 테이블
+  document.getElementById('tableBody').innerHTML = [...data.daily].reverse().map(d => `
+    <tr>
+      <td>${d.date}</td>
+      <td>${fmt(d.req)}</td>
+      <td>${fmt(d.hit)}</td>
+      <td>${fmt(d.api)}</td>
+      <td>${pct(d.hit, d.req)}%</td>
+    </tr>
+  `).join('');
+}
+
+async function loadDashboard() {
+  document.getElementById('loadingMsg').style.display = 'block';
+  document.getElementById('dashboardSection').style.display = 'none';
+  try {
+    const data = await fetchStats();
+    renderDashboard(data);
+    document.getElementById('dashboardSection').style.display = 'block';
+  } catch (e) {
+    if (e.message === 'unauthorized') {
+      showLogin('키가 올바르지 않습니다.');
+      return;
+    }
+    alert('데이터 로드 실패: ' + e.message);
+  } finally {
+    document.getElementById('loadingMsg').style.display = 'none';
+  }
+}
+
+function showLogin(err) {
+  localStorage.removeItem(STORAGE_KEY);
+  secret = '';
+  document.getElementById('loginSection').style.display = '';
+  document.getElementById('dashboardSection').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = 'none';
+  if (err) document.getElementById('loginError').textContent = err;
+}
+
+function showDashboard() {
+  document.getElementById('loginSection').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = '';
+  loadDashboard();
+}
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const val = document.getElementById('secretInput').value.trim();
+  if (!val) return;
+  secret = val;
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginBtn').textContent = '확인 중…';
+  try {
+    await fetchStats();
+    localStorage.setItem(STORAGE_KEY, secret);
+    showDashboard();
+  } catch (e) {
+    document.getElementById('loginError').textContent = e.message === 'unauthorized' ? '키가 올바르지 않습니다.' : '연결 실패';
+  } finally {
+    document.getElementById('loginBtn').textContent = '입장';
+  }
+});
+
+document.getElementById('secretInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => showLogin(''));
+document.addEventListener('DOMContentLoaded', () => {
+  if (secret) showDashboard();
+});
+document.getElementById('refreshBtn')?.addEventListener('click', loadDashboard);
+</script>
+</body>
+</html>
