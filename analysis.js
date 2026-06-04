@@ -614,6 +614,10 @@ function addPremiumButtons(container, analysisData) {
                 <button class="action-btn share-btn" onclick="shareAnalysis()" style="background: linear-gradient(135deg, #3498db, #2980b9); color: white; padding: 12px 30px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
                     🔗 공유하기
                 </button>
+
+                <button class="action-btn history-btn" onclick="openHistoryModal()" style="background: linear-gradient(135deg, #27ae60, #1e8449); color: white; padding: 12px 30px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                    📝 이전 기록
+                </button>
             </div>
             
             <div class="premium-upgrade" style="margin-top: 30px; padding: 25px; background: linear-gradient(135deg, #f8f9fc 0%, #e8eaf6 100%); border-radius: 15px; border: 2px dashed #4a5fc1;">
@@ -1138,4 +1142,35 @@ function displayCustomAnswer(template, answer) {
 function closeCustomQuestionModal() {
     const modal = document.querySelector('.custom-question-modal');
     if (modal) modal.remove();
+}
+
+// ── 히스토리 모달 ────────────────────────────────────────────────
+
+function openHistoryModal() {
+    const existing = document.querySelector('.history-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.className = 'history-modal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:10000;padding:20px;box-sizing:border-box;';
+    modal.innerHTML = `
+        <div style="background:white;border-radius:20px;max-width:620px;width:100%;max-height:80vh;overflow-y:auto;padding:30px;position:relative;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:2px solid #eee;padding-bottom:15px;position:sticky;top:0;background:white;z-index:1;">
+                <h3 style="color:#2c3e89;font-size:1.3rem;margin:0;">📝 분석 기록</h3>
+                <button onclick="closeHistoryModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#666;padding:5px;line-height:1;">✕</button>
+            </div>
+            <div id="history-modal-body">
+                ${premiumFeatures.generateHistoryHTML()}
+            </div>
+        </div>
+    `;
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeHistoryModal(); });
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+}
+
+function closeHistoryModal() {
+    const modal = document.querySelector('.history-modal');
+    if (modal) modal.remove();
+    document.body.style.overflow = '';
 }

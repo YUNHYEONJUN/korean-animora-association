@@ -1,69 +1,136 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-아니모라 백엔드 API 서버
-OpenAI API 연동 및 프리미엄 기능 제공
+아니모라 백엔드 API 서버 (로컬 개발 전용 — 운영은 Cloudflare Worker 사용)
 """
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from openai import OpenAI
 import os
+import re
 import json
+import time
+import threading
 from datetime import datetime
 from pathlib import Path
 
 app = Flask(__name__)
 
-# CORS 설정 - 모든 출처 허용 (개발/테스트용)
-CORS(app, 
-     resources={r"/api/*": {"origins": "*"}},
+# ── 요청 크기 제한 ───────────────────────────────────────────────
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024  # 50KB
+
+# ── CORS: 환경변수 화이트리스트만 허용 ──────────────────────────
+_raw_origins = os.getenv('ALLOWED_ORIGINS', 'https://yunhyeonjun.github.io')
+ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(',') if o.strip()]
+
+# 개발 시 localhost 허용: ALLOW_LOCALHOST=true
+if os.getenv('ALLOW_LOCALHOST', 'false').lower() == 'true':
+    ALLOWED_ORIGINS += ['http://localhost:5500', 'http://127.0.0.1:5500',
+                        'http://localhost:3000', 'http://127.0.0.1:3000']
+
+CORS(app,
+     resources={r"/api/*": {"origins": ALLOWED_ORIGINS}},
      allow_headers=["Content-Type"],
      methods=["GET", "POST", "OPTIONS"])
 
-# OpenAI 클라이언트 설정 (젠스파크 프록시)
+# ── OpenAI 클라이언트 ────────────────────────────────────────────
 client = OpenAI(
     api_key=os.getenv('OPENAI_API_KEY'),
     base_url=os.getenv('OPENAI_BASE_URL', 'https://www.genspark.ai/api/llm_proxy/v1')
 )
 
-# 기본 모델 설정 (젠스파크 프록시 지원 모델)
-DEFAULT_MODEL = "gpt-5"
+DEFAULT_MODEL = os.getenv('OPENAI_MODEL', 'gpt-5')
 
-# 아니모라 지식 베이스 로드
+# ── 입력 sanitization ───────────────────────────────────────────
+
+_INJECTION_PATTERN = re.compile(
+    r'\b(ignore|disregard|forget)\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?)'
+    r'|\b(you\s+are\s+now|act\s+as|pretend\s+to\s+be|new\s+instructions?)\b',
+    re.IGNORECASE
+)
+_CODE_BLOCK_PATTERN = re.compile(r'```[\s\S]*?```')
+
+def sanitize_str(value: object, max_len: int = 200) -> str:
+    if not isinstance(value, str):
+        return ''
+    value = _INJECTION_PATTERN.sub('[필터됨]', value)
+    value = _CODE_BLOCK_PATTERN.sub('', value)
+    return value[:max_len]
+
+def sanitize_int(value: object, lo: int, hi: int, default: int) -> int:
+    try:
+        n = int(value)
+        return max(lo, min(hi, n))
+    except (TypeError, ValueError):
+        return default
+
+VALID_GENDERS = {'male', 'female'}
+VALID_RELATIONS = {'family', 'friend', 'colleague', 'partner', 'business', 'team', 'other'}
+VALID_ANALYSIS_TYPES = {'personal', 'couple', 'family'}
+VALID_QUESTION_TYPES = {'basic', 'detailed'}
+
+# ── Rate Limiting ────────────────────────────────────────────────
+
+_RATE_WINDOW = 60        # 초
+_RATE_MAX    = 20        # 창당 최대 요청
+_rl_store: dict = {}
+_rl_lock = threading.Lock()
+
+def _check_rate_limit(ip: str) -> bool:
+    now = time.monotonic()
+    with _rl_lock:
+        entry = _rl_store.get(ip)
+        if not entry or now - entry['ts'] > _RATE_WINDOW:
+            _rl_store[ip] = {'ts': now, 'n': 1}
+            # 오래된 항목 정리 (1000개 초과 시)
+            if len(_rl_store) > 1000:
+                cutoff = now - _RATE_WINDOW * 2
+                stale = [k for k, v in _rl_store.items() if v['ts'] < cutoff]
+                for k in stale:
+                    del _rl_store[k]
+            return True
+        entry['n'] += 1
+        return entry['n'] <= _RATE_MAX
+
+@app.before_request
+def _enforce_rate_limit():
+    if request.method == 'POST':
+        # 신뢰할 수 있는 IP: 로컬 운영이므로 remote_addr 사용
+        ip = request.remote_addr or 'unknown'
+        if not _check_rate_limit(ip):
+            return jsonify({'error': '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'}), 429
+
+# ── 지식 베이스 ──────────────────────────────────────────────────
+
 KNOWLEDGE_BASE_PATH = Path(__file__).parent / "animora_knowledge.json"
-ANIMORA_KNOWLEDGE = {}
+ANIMORA_KNOWLEDGE: dict = {}
 
 def load_knowledge_base():
-    """PDF에서 추출한 아니모라 지식 베이스 로드"""
     global ANIMORA_KNOWLEDGE
     try:
         if KNOWLEDGE_BASE_PATH.exists():
             with open(KNOWLEDGE_BASE_PATH, 'r', encoding='utf-8') as f:
                 ANIMORA_KNOWLEDGE = json.load(f)
-            print(f"✅ 지식 베이스 로드 완료:")
-            print(f"   - 월별 나라: {len(ANIMORA_KNOWLEDGE.get('months', {}))}개")
-            print(f"   - 대표 조합: {len(ANIMORA_KNOWLEDGE.get('combinations', {}))}개")
+            print(f"✅ 지식 베이스 로드: 월별 {len(ANIMORA_KNOWLEDGE.get('months', {}))}개 / "
+                  f"조합 {len(ANIMORA_KNOWLEDGE.get('combinations', {}))}개")
         else:
-            print(f"⚠️ 지식 베이스 파일 없음: {KNOWLEDGE_BASE_PATH}")
-    except Exception as e:
-        print(f"❌ 지식 베이스 로드 실패: {e}")
+            print(f"⚠️ 지식 베이스 없음: {KNOWLEDGE_BASE_PATH}")
+    except Exception as exc:
+        print(f"❌ 지식 베이스 로드 실패: {exc}")
 
-# 앱 시작 시 지식 베이스 로드
 load_knowledge_base()
 
-def get_month_knowledge(month):
-    """특정 월의 상세 설명 가져오기"""
-    months = ANIMORA_KNOWLEDGE.get('months', {})
-    return months.get(str(month), {}).get('content', '')
+def get_month_knowledge(month) -> str:
+    return ANIMORA_KNOWLEDGE.get('months', {}).get(str(month), {}).get('content', '')
 
-def get_combination_knowledge(month, day):
-    """특정 조합의 분석 내용 가져오기"""
-    combinations = ANIMORA_KNOWLEDGE.get('combinations', {})
+def get_combination_knowledge(month, day) -> str:
     key = f"{month}월{day}일"
-    return combinations.get(key, {}).get('content', '')
+    return ANIMORA_KNOWLEDGE.get('combinations', {}).get(key, {}).get('content', '')
 
-# 아니모라 시스템 프롬프트
+# ── 시스템 프롬프트 ──────────────────────────────────────────────
+# 단일 소스: cloudflare-worker/src/index.js 의 ANIMORA_SYSTEM_PROMPT 와 동기화 유지
+
 ANIMORA_SYSTEM_PROMPT = """당신은 한국아니모라협회의 전문 상담사입니다.
 
 아니모라(ANIMORA)는 음력 생일의 월(나라)과 일(동물)을 조합하여 360가지 인생 유형을 분석하는 시스템입니다.
@@ -133,135 +200,121 @@ ANIMORA_SYSTEM_PROMPT = """당신은 한국아니모라협회의 전문 상담�
 - 특성: 인내심, 끈기, 안정성, 신뢰성
 - 약점: 고집과 변화 저항
 
-## 30개 동물(일주) 본성 - 공식 아니모라 동물표
-## 상(11~20일), 중(1~10일), 하(21~30일)
+## 30개 동물(일주) 본성
 
 ### 호랑이과 (1, 11, 21일)
-- 1일: 호랑이 (중) - 강인한 생존력과 독립심, 균형 잡힌 힘과 판단력
-- 11일: 호랑이 (상) - 강력한 카리스마와 리더십, 자존심과 용맹함
-- 21일: 고양이 (하) - 독립적이고 예민한 감각, 자유로움과 선택적 애정
+- 1일: 호랑이 (중) - 강인한 생존력과 독립심
+- 11일: 호랑이 (상) - 강력한 카리스마와 리더십
+- 21일: 고양이 (하) - 독립적이고 예민한 감각
 
 ### 토끼과 (2, 12, 22일)
-- 2일: 야생토끼 (중) - 민첩하고 경계심 강함, 생존 본능 탁월
-- 12일: 오소리 (상) - 온화한 외모와 달리 강한 끈기와 투지, 집념
-- 22일: 집토끼 (하) - 온순하고 안정 추구, 편안한 환경에서 능력 발휘
+- 2일: 야생토끼 (중) - 민첩하고 경계심 강함
+- 12일: 오소리 (상) - 강한 끈기와 투지
+- 22일: 집토끼 (하) - 온순하고 안정 추구
 
 ### 용과 (3, 13, 23일)
-- 3일: 이무기 (중) - 큰 잠재력을 품고 때를 기다림, 인내와 성취욕
-- 13일: 용 (상) - 강한 카리스마와 높은 이상, 비전과 영향력
-- 23일: 도롱뇽 (하) - 유연하고 적응력 있음, 환경 변화에 빠르게 순응
+- 3일: 이무기 (중) - 큰 잠재력, 인내와 성취욕
+- 13일: 용 (상) - 강한 카리스마와 높은 이상
+- 23일: 도롱뇽 (하) - 유연하고 적응력 있음
 
 ### 뱀과 (4, 14, 24일)
-- 4일: 아나콘다 (중) - 강력한 직감과 현실 감각, 한 방의 몰입력
-- 14일: 구렁이 (상) - 신중하고 전략적, 깊은 통찰력
-- 24일: 꽃뱀 (하) - 매력적이고 감각적, 관계 지능 높음
+- 4일: 아나콘다 (중) - 강력한 직감과 현실 감각
+- 14일: 구렁이 (상) - 신중하고 전략적
+- 24일: 꽃뱀 (하) - 매력적이고 감각적
 
 ### 말과 (5, 15, 25일)
-- 5일: 야생마 (중) - 자유로운 영혼, 열정과 속도감
-- 15일: 경주마 (상) - 목표를 향해 질주하는 승부사, 경쟁 속 성취
-- 25일: 명품마 (하) - 품격 있고 우아함, 인정 욕구
+- 5일: 야생마 (중) - 자유로운 영혼, 열정
+- 15일: 경주마 (상) - 목표를 향해 질주하는 승부사
+- 25일: 명품마 (하) - 품격 있고 우아함
 
 ### 양과 (6, 16, 26일)
-- 6일: 양 (중) - 평화주의, 공감 능력, 온순함
-- 16일: 산양 (상) - 온화하지만 고집 있음, 독립적이고 인내심 강함
-- 26일: 염소 (하) - 소박하고 실용적, 현실적 판단력
+- 6일: 양 (중) - 평화주의, 공감 능력
+- 16일: 산양 (상) - 고집 있고 독립적
+- 26일: 염소 (하) - 소박하고 실용적
 
 ### 원숭이과 (7, 17, 27일)
-- 7일: 오랑우탄 (중) - 사려 깊고 지적, 깊이 있는 사고와 관찰력
-- 17일: 고릴라 (상) - 강력한 힘과 온화한 리더십, 가족과 무리 보호
-- 27일: 침팬지 (하) - 적응력과 친화력, 사회성과 유연한 사고
+- 7일: 오랑우탄 (중) - 사려 깊고 지적
+- 17일: 고릴라 (상) - 강력한 힘과 온화한 리더십
+- 27일: 침팬지 (하) - 적응력과 친화력
 
 ### 닭과 (8, 18, 28일)
-- 8일: 장미계 (중) - 화려하고 자신감 넘침, 자기 표현에 능함
-- 18일: 수탉 (상) - 책임감 있고 성실, 시간 관념 철저, 리더의 자질
-- 28일: 암탉 (하) - 따뜻하고 헌신적, 가정과 조직을 돌보는 세심함
+- 8일: 장미계 (중) - 화려하고 자신감 넘침
+- 18일: 수탉 (상) - 책임감 있고 성실
+- 28일: 암탉 (하) - 따뜻하고 헌신적
 
 ### 개과 (9, 19, 29일)
-- 9일: 들개 (중) - 생존 감각과 현실 전략, 독립적 생존력
-- 19일: 늑대 (상) - 강한 리더십과 충성심, 협력과 의리
-- 29일: 강아지 (하) - 순수하고 충성스러움, 사랑받고 싶은 욕구
+- 9일: 들개 (중) - 생존 감각과 현실 전략
+- 19일: 늑대 (상) - 강한 리더십과 충성심
+- 29일: 강아지 (하) - 순수하고 충성스러움
 
 ### 돼지과 (10, 20, 30일)
-- 10일: 멧돼지 (중) - 거침없는 추진력과 강한 생명력, 돌파력
-- 20일: 수돼지 (상) - 풍요와 관대함, 베풀기 좋아하고 호탕한 성격
-- 30일: 암돼지 (하) - 모성애와 포용력, 현실적이고 실속 있는 삶
+- 10일: 멧돼지 (중) - 거침없는 추진력
+- 20일: 수돼지 (상) - 풍요와 관대함
+- 30일: 암돼지 (하) - 모성애와 포용력
 
 당신의 역할:
-1. **정확한 아니모라 이론 적용**: 위 12개 나라와 30개 동물의 특성을 정확히 반영
-2. **나라-동물 조합 분석**: 환경(나라)과 본성(동물)의 상호작용 해석
-3. **실생활 적용**: 구체적이고 실용적인 조언 제공
-4. **한국 문화 반영**: 명리학과 한국 문화에 기반한 해석
-5. **따뜻한 상담**: 공감적이고 긍정적인 톤 유지
-
-답변 스타일 및 구조:
-
-1. **이모지 활용**: 🔎 🐯 🐉 💞 ✔ ⚠ 👉 ✨ 🖋 등 적절한 이모지로 가독성 향상
-2. **섹션 구분**: 명확한 제목(1️⃣, 2️⃣, 3️⃣)과 소제목으로 구조화
-3. **구체적 해석**: "밖으로는 화려한 계획가와, 안으로는 생활을 지키는 현실 감각의 만남" 같은 통찰력 있는 한 문장 요약
-4. **깊이 있는 분석**:
-   - 각 사람의 나라와 동물 특성을 별도로 상세히 해석
-   - 연애/관계에서의 구체적 행동 패턴 제시
-   - "다만", "하지만"으로 약점도 솔직하게 언급
-5. **관계 역학**: 
-   - 서로 어떻게 끌리는지
-   - 잘 맞을 때 vs 어긋날 때의 구체적 시나리오
-   - 포식·보완 관계 분석
-6. **실천 조언**: 
-   - 성별/역할별로 분리된 구체적 조언
-   - "이 여자는...", "이 남자는..." 형태의 직접적 표현
-7. **마무리 시그니처**:
-   - 궁합 한 문장 요약
-   - 철학적이고 기억에 남는 마무리 문장
+1. 정확한 아니모라 이론 적용
+2. 나라-동물 조합 분석
+3. 실생활 적용 조언
+4. 한국 문화 반영
+5. 따뜻한 상담 톤 유지
 
 답변 톤:
-- 존댓말 사용하되 친근하고 따뜻함
+- 존댓말, 친근하고 따뜻함
 - 직설적이지만 비판적이지 않음
-- 깊이 있으면서도 쉬운 표현
-- 2000-3000자 분량의 상세한 답변
-"""
+- 2000-3000자 분량"""
 
+
+# ── API 라우트 ──────────────────────────────────────────────────
 
 @app.route('/')
 def index():
-    """서버 상태 확인"""
     return jsonify({
         "status": "running",
-        "service": "아니모라 백엔드 API",
-        "version": "1.0.0",
-        "endpoints": [
-            "/api/health",
-            "/api/ai-analysis",
-            "/api/custom-question"
-        ]
+        "service": "아니모라 백엔드 API (개발용)",
+        "version": "2.0.0",
+        "endpoints": ["/api/health", "/api/ai-analysis", "/api/custom-question"]
     })
 
 
 @app.route('/api/health')
 def health():
-    """헬스 체크"""
     return jsonify({
         "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.utcnow().isoformat() + 'Z',
         "openai_configured": bool(os.getenv('OPENAI_API_KEY'))
     })
 
 
 @app.route('/api/ai-analysis', methods=['POST'])
 def ai_analysis():
-    """AI 성격 분석 생성"""
     try:
-        data = request.json
-        analysis_data = data.get('analysisData', {})
-        question_type = data.get('questionType', 'basic')
-        
-        # 분석 데이터 검증
+        body = request.get_json(silent=True)
+        if not body:
+            return jsonify({"error": "잘못된 JSON 형식입니다."}), 400
+
+        analysis_data = body.get('analysisData', {})
+        question_type = body.get('questionType', 'basic')
+
         if not analysis_data:
-            return jsonify({"error": "분석 데이터가 필요합니다"}), 400
-        
-        # 프롬프트 생성
-        prompt = generate_analysis_prompt(analysis_data, question_type)
-        
-        # OpenAI API 호출 (새 버전)
+            return jsonify({"error": "분석 데이터가 필요합니다."}), 400
+
+        # 타입 검증
+        a_type = analysis_data.get('type', 'personal')
+        if a_type not in VALID_ANALYSIS_TYPES:
+            return jsonify({"error": "지원하지 않는 분석 유형입니다."}), 400
+
+        if question_type not in VALID_QUESTION_TYPES:
+            question_type = 'basic'
+
+        # family 구성원 수 제한
+        if a_type == 'family':
+            members = analysis_data.get('members', [])
+            if not isinstance(members, list) or len(members) > 10:
+                return jsonify({"error": "구성원은 최대 10명까지 지원합니다."}), 400
+
+        prompt = _generate_prompt(analysis_data, question_type)
+
         response = client.chat.completions.create(
             model=DEFAULT_MODEL,
             messages=[
@@ -271,37 +324,35 @@ def ai_analysis():
             temperature=0.8,
             max_tokens=4000
         )
-        
-        analysis_text = response.choices[0].message.content
-        
+
         return jsonify({
             "success": True,
-            "analysis": analysis_text,
+            "analysis": response.choices[0].message.content,
             "model": DEFAULT_MODEL,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.utcnow().isoformat() + 'Z'
         })
-        
-    except Exception as e:
-        print(f"오류 발생: {e}")
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+
+    except Exception:
+        app.logger.exception("ai-analysis 처리 오류")
+        return jsonify({"success": False, "error": "분석 처리 중 오류가 발생했습니다."}), 500
 
 
 @app.route('/api/custom-question', methods=['POST'])
 def custom_question():
-    """맞춤형 질문 처리"""
     try:
-        data = request.json
-        prompt = data.get('prompt')
-        template_id = data.get('templateId')
-        question_data = data.get('data', {})
-        
+        body = request.get_json(silent=True)
+        if not body:
+            return jsonify({"error": "잘못된 JSON 형식입니다."}), 400
+
+        prompt = body.get('prompt')
+        template_id = body.get('templateId')
+
         if not prompt:
-            return jsonify({"error": "프롬프트가 필요합니다"}), 400
-        
-        # OpenAI API 호출 (새 버전)
+            return jsonify({"error": "프롬프트가 필요합니다."}), 400
+
+        if not isinstance(prompt, str) or len(prompt) > 5000:
+            return jsonify({"error": "프롬프트가 너무 깁니다."}), 400
+
         response = client.chat.completions.create(
             model=DEFAULT_MODEL,
             messages=[
@@ -311,282 +362,128 @@ def custom_question():
             temperature=0.8,
             max_tokens=4000
         )
-        
-        answer_text = response.choices[0].message.content
-        
+
         return jsonify({
             "success": True,
-            "answer": answer_text,
+            "answer": response.choices[0].message.content,
             "templateId": template_id,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.utcnow().isoformat() + 'Z'
         })
-        
-    except Exception as e:
-        print(f"오류 발생: {e}")
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+
+    except Exception:
+        app.logger.exception("custom-question 처리 오류")
+        return jsonify({"success": False, "error": "질문 처리 중 오류가 발생했습니다."}), 500
 
 
-def generate_analysis_prompt(analysis_data, question_type):
-    """분석 프롬프트 생성"""
-    
-    analysis_type = analysis_data.get('type', 'personal')
-    
-    if analysis_type == 'personal':
-        return generate_personal_prompt(analysis_data, question_type)
-    elif analysis_type == 'couple':
-        return generate_couple_prompt(analysis_data, question_type)
-    elif analysis_type == 'family':
-        return generate_family_prompt(analysis_data, question_type)
-    
+# ── 프롬프트 생성 ────────────────────────────────────────────────
+
+def _generate_prompt(data: dict, question_type: str) -> str:
+    a_type = data.get('type', 'personal')
+    if a_type == 'personal':
+        return _personal_prompt(data, question_type)
+    if a_type == 'couple':
+        return _couple_prompt(data)
+    if a_type == 'family':
+        return _family_prompt(data)
     return "알 수 없는 분석 유형입니다."
 
 
-def generate_personal_prompt(data, question_type):
-    """개인 분석 프롬프트"""
-    name = data.get('name', '고객')
-    gender = '남성' if data.get('gender') == 'male' else '여성'
-    month = data.get('month')
-    day = data.get('day')
-    country = data.get('country', '')
-    animal = data.get('animal', '')
-    
-    # 지식 베이스에서 상세 정보 가져오기
-    month_knowledge = get_month_knowledge(month)
-    combination_knowledge = get_combination_knowledge(month, day)
-    
-    prompt = f"""
-[개인 성격 분석 요청]
+def _personal_prompt(data: dict, question_type: str) -> str:
+    name    = sanitize_str(data.get('name', '고객'))
+    gender  = '남성' if data.get('gender') in VALID_GENDERS and data.get('gender') == 'male' else '여성'
+    month   = sanitize_int(data.get('month'), 1, 12, 1)
+    day     = sanitize_int(data.get('day'), 1, 30, 1)
+    country = sanitize_str(data.get('country', ''))
+    animal  = sanitize_str(data.get('animal', ''))
 
-이름: {name} ({gender})
-음력 생일: {month}월 {day}일
-나라(환경): {country}
-동물(본성): {animal}
-"""
-    
-    # 월별 나라 상세 정보 추가
-    if month_knowledge:
-        prompt += f"""
+    month_kb = get_month_knowledge(month)
+    combo_kb = get_combination_knowledge(month, day)
 
-## 📚 {country} 상세 특성 (PDF 원문)
-{month_knowledge[:1500]}
+    prompt = f"[개인 성격 분석 요청]\n\n이름: {name} ({gender})\n음력 생일: {month}월 {day}일\n나라(환경): {country}\n동물(본성): {animal}\n"
 
-"""
-    
-    # 조합 분석 원문 추가
-    if combination_knowledge:
-        prompt += f"""
+    if month_kb:
+        prompt += f"\n## 📚 {country} 상세 특성 (PDF 원문)\n{month_kb[:1500]}\n"
+    if combo_kb:
+        prompt += f"\n## 🎯 {month}월 {day}일 조합 분석 (PDF 원문)\n{combo_kb[:1500]}\n"
 
-## 🎯 {month}월 {day}일 조합 분석 (PDF 원문)
-{combination_knowledge[:1500]}
-
-"""
-    
     prompt += """
-위 PDF 원문 내용을 **반드시 참고**하여 다음을 분석해주세요:
-
-1. **자라난 환경 분석** (나라의 영향)
-   - 어떤 환경에서 자랐으며, 이것이 성격 형성에 어떤 영향을 주었나요?
-   - 부모나 가정환경의 특성은 무엇인가요?
-
-2. **내면의 본성** (동물의 특성)
-   - 타고난 성격과 기질은 어떤가요?
-   - 강점과 약점은 무엇인가요?
-
-3. **종합 해석**
-   - 환경과 본성이 어떻게 조화를 이루나요?
-   - 인생에서 주의해야 할 점은 무엇인가요?
-
-4. **실생활 조언**
-   - 이 유형에 맞는 구체적인 생활 방식은?
-   - 관계, 직장, 자기계발에서의 팁
-
-**중요**: PDF 원문의 표현과 통찰을 최대한 살려서, 따뜻하고 공감적인 톤으로 작성해주세요.
+위 내용을 참고하여 다음을 분석해주세요:
+1. 자라난 환경 분석 (나라의 영향)
+2. 내면의 본성 (동물의 특성)
+3. 종합 해석
+4. 실생활 조언
 """
-    
     if question_type == 'detailed':
-        prompt += "\n\n특히 더 깊이 있고 상세한 분석을 제공해주세요. 심리학적 관점과 구체적인 사례를 포함해주세요."
-    
+        prompt += "\n심리학적 관점과 구체적인 사례를 포함한 상세 분석을 제공해주세요."
     return prompt
 
 
-def generate_couple_prompt(data, question_type):
-    """커플 궁합 프롬프트"""
-    person1 = data.get('person1', {})
-    person2 = data.get('person2', {})
-    score = data.get('compatibilityScore', 0)
-    
-    # 지식 베이스에서 정보 가져오기
-    p1_month_knowledge = get_month_knowledge(person1.get('month'))
-    p2_month_knowledge = get_month_knowledge(person2.get('month'))
-    p1_combo_knowledge = get_combination_knowledge(person1.get('month'), person1.get('day'))
-    p2_combo_knowledge = get_combination_knowledge(person2.get('month'), person2.get('day'))
-    
-    prompt = f"""
-[커플 궁합 분석 요청]
+def _couple_prompt(data: dict) -> str:
+    p1 = data.get('person1', {})
+    p2 = data.get('person2', {})
+    score = sanitize_int(data.get('compatibilityScore', 0), 0, 100, 0)
 
-👤 첫 번째 사람: {person1.get('name')} ({person1.get('gender')})
-   - 음력 생일: {person1.get('month')}월 {person1.get('day')}일
-   - 나라: {person1.get('country')}
-   - 동물: {person1.get('animal')}
+    p1_name    = sanitize_str(p1.get('name', '사람1'))
+    p2_name    = sanitize_str(p2.get('name', '사람2'))
+    p1_gender  = '남성' if p1.get('gender') == 'male' else '여성'
+    p2_gender  = '남성' if p2.get('gender') == 'male' else '여성'
+    p1_month   = sanitize_int(p1.get('month'), 1, 12, 1)
+    p1_day     = sanitize_int(p1.get('day'), 1, 30, 1)
+    p2_month   = sanitize_int(p2.get('month'), 1, 12, 1)
+    p2_day     = sanitize_int(p2.get('day'), 1, 30, 1)
+    p1_country = sanitize_str(p1.get('country', ''))
+    p2_country = sanitize_str(p2.get('country', ''))
+    p1_animal  = sanitize_str(p1.get('animal', ''))
+    p2_animal  = sanitize_str(p2.get('animal', ''))
 
-👤 두 번째 사람: {person2.get('name')} ({person2.get('gender')})
-   - 음력 생일: {person2.get('month')}월 {person2.get('day')}일
-   - 나라: {person2.get('country')}
-   - 동물: {person2.get('animal')}
+    p1_mk = get_month_knowledge(p1_month)
+    p2_mk = get_month_knowledge(p2_month)
+    p1_ck = get_combination_knowledge(p1_month, p1_day)
+    p2_ck = get_combination_knowledge(p2_month, p2_day)
 
-💯 궁합 점수: {score}점
-"""
-    
-    # PDF 원문 추가
-    if p1_month_knowledge:
-        prompt += f"\n\n## 📚 {person1.get('name')}의 나라 ({person1.get('country')}) 특성\n{p1_month_knowledge[:800]}\n"
-    if p2_month_knowledge:
-        prompt += f"\n\n## 📚 {person2.get('name')}의 나라 ({person2.get('country')}) 특성\n{p2_month_knowledge[:800]}\n"
-    if p1_combo_knowledge:
-        prompt += f"\n\n## 🎯 {person1.get('name')}의 조합 분석\n{p1_combo_knowledge[:800]}\n"
-    if p2_combo_knowledge:
-        prompt += f"\n\n## 🎯 {person2.get('name')}의 조합 분석\n{p2_combo_knowledge[:800]}\n"
-    
-    prompt += """
+    prompt = (
+        f"[커플 궁합 분석 요청]\n\n"
+        f"👤 {p1_name} ({p1_gender}): 음력 {p1_month}월 {p1_day}일 / {p1_country} / {p1_animal}\n"
+        f"👤 {p2_name} ({p2_gender}): 음력 {p2_month}월 {p2_day}일 / {p2_country} / {p2_animal}\n"
+        f"💯 궁합 점수: {score}점\n"
+    )
+    if p1_mk: prompt += f"\n## {p1_name}의 나라 특성\n{p1_mk[:800]}\n"
+    if p2_mk: prompt += f"\n## {p2_name}의 나라 특성\n{p2_mk[:800]}\n"
+    if p1_ck: prompt += f"\n## {p1_name}의 조합 분석\n{p1_ck[:800]}\n"
+    if p2_ck: prompt += f"\n## {p2_name}의 조합 분석\n{p2_ck[:800]}\n"
 
-위 PDF 원문을 **반드시 참고**하여, 이모지와 구조화된 형식으로 분석해주세요:
-
-1️⃣ **두 사람의 개별 특성**
-   - 각 사람의 나라와 동물이 만들어내는 고유한 성격
-   - 강점과 약점
-
-2️⃣ **관계 역학**
-   - 서로 어떻게 끌리는가?
-   - 포식-보완 관계는?
-   - 잘 맞을 때 vs 어긋날 때의 구체적 시나리오
-
-3️⃣ **실천 조언**
-   - 성별/역할별 구체적 조언
-   - 화해 방법, 소통 팁
-
-💬 **한 문장 요약**: 이 관계를 한 문장으로 표현
-
-🖋 **마무리**: 철학적이고 기억에 남는 시그니처 문장
-
-**스타일**: PDF 원문의 은유와 표현을 살려서, 2000-3000자 분량으로 작성해주세요.
-"""
-    
-    return prompt
-    
-    gender1 = '남성' if person1.get('gender') == 'male' else '여성'
-    gender2 = '남성' if person2.get('gender') == 'male' else '여성'
-    
-    prompt = f"""
-[커플 궁합 분석 요청]
-
-**첫 번째 사람: {person1.get('name')} ({gender1})**
-- 음력: {person1.get('month')}월 {person1.get('day')}일
-- 나라: {person1.get('country')}
-- 동물: {person1.get('animal')}
-
-**두 번째 사람: {person2.get('name')} ({gender2})**
-- 음력: {person2.get('month')}월 {person2.get('day')}일
-- 나라: {person2.get('country')}
-- 동물: {person2.get('animal')}
-
-궁합 점수: {score}점
-
-두 사람의 관계를 분석해주세요:
-
-1. **관계의 강점**
-   - 두 사람이 서로 보완하는 부분
-   - 함께할 때의 시너지
-
-2. **주의할 점**
-   - 갈등이 생길 수 있는 영역
-   - 각자 주의해야 할 태도
-
-3. **관계 개선 조언**
-   - 더 나은 관계를 위한 구체적 방법
-   - 소통의 팁
-
-4. **장기적 전망**
-   - 이 조합의 미래 가능성
-   - 함께 성장하는 방법
-"""
-    
+    prompt += "\n두 사람의 개별 특성, 관계 역학, 실천 조언, 한 문장 요약을 이모지와 구조화된 형식으로 분석해주세요."
     return prompt
 
 
-def generate_family_prompt(data, question_type):
-    """다중 관계 프롬프트"""
+def _family_prompt(data: dict) -> str:
     members = data.get('members', [])
-    
-    # 관계 유형 확인
     relation_labels = {
-        'family': '가족',
-        'friend': '친구',
-        'colleague': '동료',
-        'partner': '연인',
-        'business': '비즈니스 파트너',
-        'team': '팀원',
-        'other': '기타'
+        'family': '가족', 'friend': '친구', 'colleague': '동료',
+        'partner': '연인', 'business': '비즈니스 파트너', 'team': '팀원', 'other': '기타'
     }
-    
-    prompt = f"""
-[다중 관계 분석 요청]
-
-구성원 정보:
-"""
-    
-    for i, member in enumerate(members, 1):
-        relation = relation_labels.get(member.get('relation', 'other'), member.get('relation', '기타'))
-        gender = '남성' if member.get('gender') == 'male' else '여성'
-        prompt += f"""
-{i}. {member.get('name')} ({relation}, {gender})
-   - 음력: {member.get('month')}월 {member.get('day')}일
-   - 나라: {member.get('country')}
-   - 동물: {member.get('animal')}
-"""
-    
-    prompt += """
-이 그룹의 관계를 종합적으로 분석해주세요:
-
-1. **구성원 역학**
-   - 각 구성원의 역할과 특성
-   - 관계 유형을 고려한 상호작용 패턴
-   - 성별에 따른 특성 차이
-
-2. **조화 포인트**
-   - 그룹이 잘 어울리는 부분
-   - 서로를 이해하는 방법
-   - 각 관계 유형별 강점
-
-3. **갈등 포인트**
-   - 마찰이 생길 수 있는 영역
-   - 각 구성원이 주의할 점
-   - 관계 유형별 주의사항
-
-4. **관계 개선 조언**
-   - 더 나은 관계를 위한 방법
-   - 구체적인 소통 전략
-   - 관계 유형별 맞춤 조언
-"""
-    
+    prompt = "[다중 관계 분석 요청]\n\n구성원 정보:\n"
+    for i, m in enumerate(members[:10], 1):
+        rel    = relation_labels.get(m.get('relation', 'other'), '기타')
+        gender = '남성' if m.get('gender') == 'male' else '여성'
+        name   = sanitize_str(m.get('name', f'구성원{i}'))
+        month  = sanitize_int(m.get('month'), 1, 12, 1)
+        day    = sanitize_int(m.get('day'), 1, 30, 1)
+        country = sanitize_str(m.get('country', ''))
+        animal  = sanitize_str(m.get('animal', ''))
+        prompt += f"\n{i}. {name} ({rel}, {gender}): 음력 {month}월 {day}일 / {country} / {animal}"
+    prompt += "\n\n구성원 역학, 조화 포인트, 갈등 포인트, 관계 개선 조언을 분석해주세요."
     return prompt
 
+
+# ── 서버 시작 ────────────────────────────────────────────────────
 
 if __name__ == '__main__':
-    port = int(os.getenv('FLASK_PORT', 5000))
-    debug = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
-    
-    api_key_status = '✅ 완료' if os.getenv('OPENAI_API_KEY') else '❌ 미설정'
-    print(f"""
-╔═══════════════════════════════════════════╗
-║   🌟 아니모라 백엔드 API 서버 시작 🌟   ║
-╠═══════════════════════════════════════════╣
-║  포트: {port}                              ║
-║  디버그: {debug}                           ║
-║  OpenAI 설정: {api_key_status}              ║
-╚═══════════════════════════════════════════╝
-    """)
-    
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    port  = int(os.getenv('FLASK_PORT', 5000))
+    debug = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+    # 운영 환경에서는 FLASK_HOST를 설정하지 않으면 로컬호스트만 바인딩
+    host  = os.getenv('FLASK_HOST', '127.0.0.1')
+
+    api_ok = '✅' if os.getenv('OPENAI_API_KEY') else '❌ 미설정'
+    print(f"\n🌟 아니모라 백엔드 (개발용) | 포트:{port} | 디버그:{debug} | OpenAI:{api_ok}\n")
+    app.run(host=host, port=port, debug=debug)

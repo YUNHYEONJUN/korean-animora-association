@@ -7,16 +7,82 @@ class PremiumFeatures {
     constructor() {
         this.config = ANIMORA_CONFIG;
     }
-    
+
     /**
-     * PDF 다운로드 (jsPDF 사용)
-     * @param {Object} analysisData - 분석 데이터
-     * @param {String} resultHTML - 결과 HTML
+     * PDF 다운로드 — html2canvas + jsPDF 방식 (한글 완전 지원)
+     * DOM을 그대로 이미지로 캡처하므로 폰트/이모지 모두 정상 출력
      */
     async downloadPDF(analysisData, resultHTML) {
-        // jsPDF 라이브러리가 로드되었는지 확인
+        const btn = document.querySelector('.pdf-btn');
+        const originalText = btn ? btn.innerHTML : '';
+        if (btn) { btn.innerHTML = '⏳ PDF 생성 중...'; btn.disabled = true; }
+
+        try {
+            // 라이브러리 로드 (없으면 동적 로드)
+            if (typeof html2canvas === 'undefined') await this._loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', 'sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==');
+            if (typeof jspdf === 'undefined') await this._loadJsPDF();
+
+            const { jsPDF } = window.jspdf;
+
+            // result-content 요소를 캡처
+            const target = document.getElementById('result-content');
+            if (!target) throw new Error('결과 영역을 찾을 수 없습니다.');
+
+            const canvas = await html2canvas(target, {
+                scale: 2,        // 고해상도 (레티나 대응)
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+            const pageW = pdf.internal.pageSize.getWidth();
+            const pageH = pdf.internal.pageSize.getHeight();
+            const margin = 10;
+            const contentW = pageW - margin * 2;
+            const imgH = (canvas.height / canvas.width) * contentW;
+
+            let y = margin;
+            let remainH = imgH;
+
+            // 여러 페이지에 걸쳐 출력
+            while (remainH > 0) {
+                const printH = Math.min(pageH - margin * 2, remainH);
+                const srcY = (imgH - remainH) / imgH * canvas.height;
+                const srcH = printH / imgH * canvas.height;
+
+                const pageCanvas = document.createElement('canvas');
+                pageCanvas.width = canvas.width;
+                pageCanvas.height = srcH;
+                pageCanvas.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+                pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', margin, y, contentW, printH);
+
+                remainH -= printH;
+                if (remainH > 0) { pdf.addPage(); y = margin; }
+            }
+
+            // 푸터 (마지막 페이지)
+            pdf.setFontSize(7);
+            pdf.setTextColor(150);
+            pdf.text('© 2025 한국아니모라협회  |  animora.kr', margin, pageH - 5);
+
+            const safeName = (analysisData.name || '결과').replace(/[/\\?%*:|"<>]/g, '_');
+            pdf.save(`아니모라_분석결과_${safeName}_${Date.now()}.pdf`);
+            return true;
+
+        } catch (error) {
+            alert('PDF 생성 중 오류가 발생했습니다.\n' + (error.message || ''));
+            return false;
+        } finally {
+            if (btn) { btn.innerHTML = originalText; btn.disabled = false; }
+        }
+    }
+
+    // 구버전 jsPDF 방식 (텍스트 기반, 한글 미지원) — 내부 폴백용으로 보존
+    async _downloadPDF_legacy(analysisData, resultHTML) {
         if (typeof jspdf === 'undefined') {
-            alert('PDF 다운로드 기능을 준비 중입니다.\n라이브러리를 로드하는 중...');
             await this._loadJsPDF();
         }
         
@@ -163,18 +229,28 @@ class PremiumFeatures {
     }
     
     /**
+     * 외부 스크립트 동적 로드 (캐시 방지 없음)
+     */
+    _loadScript(src, integrity) {
+        return new Promise((resolve, reject) => {
+            if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+            const s = document.createElement('script');
+            s.src = src;
+            if (integrity) { s.integrity = integrity; s.crossOrigin = 'anonymous'; }
+            s.onload = resolve;
+            s.onerror = () => reject(new Error(`스크립트 로드 실패: ${src}`));
+            document.head.appendChild(s);
+        });
+    }
+
+    /**
      * jsPDF 라이브러리 동적 로드
      */
-    async _loadJsPDF() {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-            script.integrity = 'sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHLQQ==';
-            script.crossOrigin = 'anonymous';
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
+    _loadJsPDF() {
+        return this._loadScript(
+            'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+            'sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHLQQ=='
+        );
     }
     
 
@@ -189,116 +265,163 @@ class PremiumFeatures {
     }
     
     /**
+     * 분석 결과 딥링크 URL 생성
+     * 공유받은 사람이 URL 열면 동일 분석이 자동 실행됨
+     */
+    buildShareUrl(data) {
+        const base = window.location.origin + window.location.pathname;
+        const p = new URLSearchParams();
+        if (data.type === 'personal') {
+            p.set('t', 'p');
+            p.set('m', data.month);
+            p.set('d', data.day);
+            p.set('g', data.gender === 'male' ? 'm' : 'f');
+            if (data.name) p.set('n', data.name);
+        } else if (data.type === 'couple') {
+            p.set('t', 'c');
+            const p1 = data.person1 || {};
+            const p2 = data.person2 || {};
+            p.set('m1', p1.month); p.set('d1', p1.day);
+            p.set('g1', p1.gender === 'male' ? 'm' : 'f');
+            if (p1.name) p.set('n1', p1.name);
+            p.set('m2', p2.month); p.set('d2', p2.day);
+            p.set('g2', p2.gender === 'male' ? 'm' : 'f');
+            if (p2.name) p.set('n2', p2.name);
+        }
+        return `${base}?${p.toString()}`;
+    }
+
+    /**
      * 소셜 공유
-     * @param {String} platform - 'kakao', 'facebook', 'twitter', 'copy'
+     * @param {String} platform - 'native', 'kakao', 'facebook', 'twitter', 'copy'
      * @param {Object} data - 공유 데이터
      */
     share(platform, data) {
-        const url = window.location.href;
-        const title = '아니모라 성격 분석 결과';
-        const description = `${data.name}님의 아니모라 유형: ${data.country} - ${data.animal}`;
-        
+        const shareUrl = this.buildShareUrl(data);
+        const name = data.name || (data.person1 && data.person1.name) || '';
+        const country = data.country || (data.person1 && data.person1.country) || '';
+        const animal = data.animal || (data.person1 && data.person1.animal) || '';
+        const title = '아니모라 성격 분석';
+        const text = name
+            ? `${name}님의 아니모라: ${country} × ${animal} — 내 유형도 확인해보세요!`
+            : `아니모라로 내 유형을 확인해보세요! (${country} × ${animal})`;
+
         switch (platform) {
+            case 'native':
+                this._shareNative(shareUrl, title, text);
+                break;
             case 'kakao':
-                this._shareKakao(url, title, description);
+                this._shareKakao(shareUrl, title, text);
                 break;
             case 'facebook':
-                this._shareFacebook(url);
+                this._shareFacebook(shareUrl);
                 break;
             case 'twitter':
-                this._shareTwitter(url, title);
+                this._shareTwitter(shareUrl, text);
                 break;
             case 'copy':
-                this._copyLink(url);
+                this._copyLink(shareUrl);
                 break;
             default:
-                alert('지원하지 않는 공유 방식입니다.');
+                this._copyLink(shareUrl);
         }
     }
-    
+
     /**
-     * 카카오톡 공유
+     * Web Share API (모바일 네이티브 공유)
      */
-    _shareKakao(url, title, description) {
-        if (typeof Kakao === 'undefined') {
-            alert('카카오톡 공유 기능은 준비 중입니다.');
+    async _shareNative(url, title, text) {
+        if (!navigator.share) {
+            this._copyLink(url);
             return;
         }
-        
-        Kakao.Link.sendDefault({
-            objectType: 'feed',
-            content: {
-                title: title,
-                description: description,
-                imageUrl: 'https://yunhyeonjun.github.io/korean-animora-association/og-image.png',
-                link: {
-                    mobileWebUrl: url,
-                    webUrl: url
-                }
-            },
-            buttons: [
-                {
-                    title: '웹으로 보기',
-                    link: {
-                        mobileWebUrl: url,
-                        webUrl: url
-                    }
-                }
-            ]
-        });
+        try {
+            await navigator.share({ title, text, url });
+        } catch (err) {
+            if (err.name !== 'AbortError') this._copyLink(url);
+        }
     }
-    
+
+    /**
+     * 카카오톡 공유 — SDK 있으면 피드, 없으면 Web Share 또는 링크 복사
+     */
+    _shareKakao(url, title, description) {
+        if (typeof Kakao !== 'undefined' && Kakao.isInitialized && Kakao.isInitialized()) {
+            Kakao.Share.sendDefault({
+                objectType: 'feed',
+                content: {
+                    title,
+                    description,
+                    imageUrl: 'https://yunhyeonjun.github.io/korean-animora-association/og-image.png',
+                    link: { mobileWebUrl: url, webUrl: url }
+                },
+                buttons: [{ title: '결과 보기', link: { mobileWebUrl: url, webUrl: url } }]
+            });
+            return;
+        }
+        // SDK 미로드: Web Share → 링크 복사 순 fallback
+        if (navigator.share) {
+            navigator.share({ title, text: description, url }).catch(() => this._copyLink(url));
+        } else {
+            this._copyLink(url);
+        }
+    }
+
     /**
      * 페이스북 공유
      */
     _shareFacebook(url) {
-        const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-        const win = window.open(shareUrl, '_blank', 'width=600,height=400');
-        if (!win) alert('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.');
+        window.open(
+            `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+            '_blank', 'width=600,height=400,noopener,noreferrer'
+        );
     }
-    
+
     /**
-     * 트위터 공유
+     * 트위터/X 공유
      */
-    _shareTwitter(url, title) {
-        const shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
-        const win = window.open(shareUrl, '_blank', 'width=600,height=400');
-        if (!win) alert('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.');
+    _shareTwitter(url, text) {
+        window.open(
+            `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
+            '_blank', 'width=600,height=400,noopener,noreferrer'
+        );
     }
-    
+
     /**
      * 링크 복사
      */
     _copyLink(url) {
+        const done = () => {
+            // alert 대신 토스트 메시지
+            const toast = document.createElement('div');
+            toast.textContent = '링크가 복사되었습니다! 📋';
+            toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#2c3e89;color:white;padding:12px 24px;border-radius:24px;font-weight:600;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.2);';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        };
         if (navigator.clipboard) {
-            navigator.clipboard.writeText(url).then(() => {
-                alert('링크가 복사되었습니다!');
-            }).catch(err => {
-                this._fallbackCopyLink(url);
-            });
+            navigator.clipboard.writeText(url).then(done).catch(() => this._fallbackCopyLink(url, done));
         } else {
-            this._fallbackCopyLink(url);
+            this._fallbackCopyLink(url, done);
         }
     }
     
     /**
      * 링크 복사 폴백
      */
-    _fallbackCopyLink(url) {
+    _fallbackCopyLink(url, onSuccess) {
         const textArea = document.createElement('textarea');
         textArea.value = url;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-9999px';
+        textArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
         document.body.appendChild(textArea);
+        textArea.focus();
         textArea.select();
-        
         try {
             document.execCommand('copy');
-            alert('링크가 복사되었습니다!');
-        } catch (err) {
-            alert('링크 복사에 실패했습니다. 수동으로 복사해주세요:\n' + url);
+            if (onSuccess) onSuccess();
+        } catch {
+            prompt('아래 링크를 직접 복사해주세요:', url);
         }
-        
         document.body.removeChild(textArea);
     }
     
@@ -402,10 +525,30 @@ const premiumFeatures = new PremiumFeatures();
 // 전역 함수 (HTML에서 호출)
 function viewHistory(id) {
     const item = storageService.getAnalysisById(id);
-    if (item) {
-        // 결과를 다시 표시 (실제 구현 시 분석 결과 재생성)
-        alert(`히스토리 보기 기능은 개발 중입니다.\nID: ${id}`);
+    if (!item || !item.data) {
+        alert('분석 데이터를 불러올 수 없습니다.');
+        return;
     }
+
+    const data = item.data;
+    let html;
+
+    if (data.type === 'personal') {
+        html = generatePersonalAnalysis(data.name, data.month, data.day);
+    } else if (data.type === 'couple') {
+        html = generateCoupleAnalysis(data.person1, data.person2);
+    } else if (data.type === 'family') {
+        html = generateFamilyAnalysis(data.members);
+    }
+
+    if (!html) return;
+
+    closeHistoryModal();
+    switchAnalysisType(data.type);
+    displayResult(html, data);
+    setTimeout(() => {
+        document.getElementById('result-section')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
 }
 
 function deleteHistory(id) {

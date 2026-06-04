@@ -24,10 +24,15 @@
     }
 
     // ── Service Worker 등록 ──────────────────────────────────────
+    // 경로 자동 감지: /repo-name/page.html → /repo-name, 루트 → ''
     if ('serviceWorker' in navigator) {
+        var swBase = (function () {
+            var m = location.pathname.match(/^(\/[^/]+)\//);
+            return m ? m[1] : '';
+        })();
         window.addEventListener('load', function () {
             navigator.serviceWorker
-                .register('/korean-animora-association/sw.js')
+                .register(swBase + '/sw.js')
                 .catch(function () { /* 등록 실패 시 조용히 무시 */ });
         });
     }

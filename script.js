@@ -131,12 +131,26 @@ window.addEventListener('scroll', () => {
     });
 
     // Parallax effect for hero section
+    // 결과(#home-result)가 .hero-content 안에 들어 있으므로,
+    // 결과가 표시되는 동안에는 패럴랙스 페이드를 끈다.
+    // 그렇지 않으면 결과를 스크롤해서 읽을 때 hero-content가 통째로 흐려져서 결과까지 같이 사라진다.
     const hero = document.querySelector('.hero-content');
     if (hero) {
-        const parallaxSpeed = 0.5;
-        const fadeDistance = 600; // px until fully faded
-        hero.style.transform = `translateY(${currentScroll * parallaxSpeed}px)`;
-        hero.style.opacity = Math.max(0, 1 - currentScroll / fadeDistance);
+        const homeResult = document.getElementById('home-result');
+        const resultVisible = homeResult
+            && homeResult.style.display !== 'none'
+            && homeResult.offsetParent !== null;
+
+        if (resultVisible) {
+            // 이전에 인라인으로 박힌 transform/opacity를 원복
+            hero.style.transform = '';
+            hero.style.opacity = '';
+        } else {
+            const parallaxSpeed = 0.5;
+            const fadeDistance = 600; // px until fully faded
+            hero.style.transform = `translateY(${currentScroll * parallaxSpeed}px)`;
+            hero.style.opacity = Math.max(0, 1 - currentScroll / fadeDistance);
+        }
     }
 });
 
